@@ -129,7 +129,7 @@ while true; do < /proc/acpi/ibm/thermal awk '{$1=""; print}'; sleep 1; done |
 
 That works. But it look like there're a number of sensors that aren't hooked-up,
 and always return -128. Let me ignore those. And let's also label the axes and
-curves.
+datasets.
 
 #+BEGIN_SRC shell :results output verbatim
 while true; do < /proc/acpi/ibm/thermal awk '{print $2,$3,$4,$6,$8,$10,$11,$12}'; sleep 1; done |
@@ -203,7 +203,6 @@ feedgnuplot. Both switches are off by default
     x y0 y1 y2 y3 y4 ....
 
   Otherwise the line number is used for the x-coordinate
-
 
 - --[no]dataid
 
@@ -351,8 +350,6 @@ seq 20 | awk '$1%2 { print $1*$1,"odd",$1 - 5,$1,$1} !($1%2){ print $1*$1,"even"
                --legend odd "Odd domain"                           \
                --autolegend
 #+END_SRC
-
-*** Other notes, fanciness
 
 For streaming plots to work, feedgnuplot must receive its input as soon as it is
 available. Thus any buffering upstream must be turned off. Look at fflush() in

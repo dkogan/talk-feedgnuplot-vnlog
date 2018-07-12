@@ -1358,13 +1358,19 @@ another. I can then see how consistent the hits are.
 #+END_SRC
 
 Here I use contrast (not the tag id) as the dataid. Looks like the detections
-are fairly consistent.
+are fairly consistent. If we need help identifying specific detections, we can
+plot them with labels:
+
+#+BEGIN_SRC shell :results output verbatim
+< joint2.vnl vnl-filter -p +xc,yc,contrast | \
+  feedgnuplot --autolegend --with labels --domain --tuplesizeall 3 --image orig.jpg --square
+#+END_SRC
 
 Let's look at the detection metrics over contrast.
 
 #+BEGIN_SRC shell :results output verbatim
 < joint2.vnl vnl-filter -p contrast,+margin,goodness | \
-  feedgnuplot --vnl --autolegend --domain --points
+  feedgnuplot --vnl --autolegend --domain --points --y2 goodness
 #+END_SRC
 
 Looks like the detector knows the results are less reliable as the

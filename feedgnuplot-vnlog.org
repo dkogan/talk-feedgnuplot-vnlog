@@ -12,9 +12,9 @@ Both of these are free software, and both are available in Debian/unstable now.
 feedgnuplot has been around much longer than vnlog, so feedgnuplot is in
 Debian/jessie (and later), and various Ubuntu releases.
 
-These tools are written in the spirit of UNIX: a large number of simple,
-general-purpose tools that communicate via pipes. Usually, as part of a larger
-shell pipeline. They make very powerful one-liners possible.
+These tools are written in the spirit of UNIX: a large number of simple tools
+that communicate via pipes. Usually, as part of a larger shell pipeline. They
+make very powerful one-liners possible.
 
 These tools are not the perfect choice for any task, but are a good choice for a
 wide range of tasks. They are great for prototyping and initial data
@@ -309,7 +309,7 @@ gnuplot -e 'help yerrorbars'
 
 It is the user's responsibility to make sure the right data is passed for a
 specific style: feedgnuplot doesn't know anything about styles, and just passes
-on the data to gnuplot. Example; let's add colors and point sizes to the
+on the data to gnuplot. Example: let's add colors and point sizes to the
 previous plot:
 
 #+BEGIN_SRC shell :results output verbatim
@@ -589,9 +589,6 @@ ls -l /tmp | awk '$1 != "total" {print $5/1000000}' | \
   feedgnuplot --histogram 0 --binwidth 1
 #+END_SRC
 
-Note that all these things work together. I can have a histogram updating in
-real time with errorbars and colored circles plotted on top.
-
 I can ask for a square aspect ratio with --square. If plotting in 3D, I can ask
 for a square xy, but a free z with --square_xy
 
@@ -647,6 +644,9 @@ cat selfplotting.dat
 #+BEGIN_SRC shell :results output verbatim
 ./selfplotting.dat
 #+END_SRC
+
+Note that all these things work together. I can have a histogram updating in
+real time with errorbars and colored circles plotted on top and so on.
 
 * vnlog
 A common workflow is one we have already seen in the plotting examples: we have
@@ -707,22 +707,27 @@ and I won't talk about them here. I want to focus on the shell tools.
 Let's do a case study that will highlight some useful workflows
 
 ** Demo
-- Let's talk about Apriltags: https://april.eecs.umich.edu/software/apriltag.html
-- Here's an example showing some of these tags. They're similar to QR codes, but
-  encode much less data in a much more robust way.
-[[file:orig.jpg]]
-- They are useful in robotics. You can place them on robots, and then build
-  tracking systems that are based on detecting these visually
-- This system was designed and built by Edwin Olson, who's now a professor at
-  the University of Michigan. There's a free-software library available to
-  detect the tags in an image
-- These work well. But how well, exactly? How robust are they to noise? How
-  robust are they to changes in contrast? Let's find out!
+Let's talk about Apriltags: https://april.eecs.umich.edu/software/apriltag.html
 
-- There's a demo program included with the apriltags library that ingests an
-  image, and spits out tag detections. I modified it to format those detections
-  as a vnlog
-- Let's run it.
+Here's an example showing some of these tags. They're similar to QR codes, but
+encode much less data in a much more robust way.
+[[file:orig.jpg]]
+
+They are useful in robotics. You can place them on robots, and then build
+tracking systems that are based on detecting these visually
+
+This system was designed and built by Edwin Olson, who's now a professor at
+the University of Michigan. There's a free-software library available to
+detect the tags in an image
+
+These work well. But how well, exactly? How robust are they to noise? How
+robust are they to changes in contrast? Let's find out!
+
+There's a demo program included with the apriltags library that ingests an
+image, and spits out tag detections. I modified it to format those detections
+as a vnlog
+
+Let's run it.
 
 #+BEGIN_SRC shell :results output verbatim
 ./findtags orig.jpg | tee orig.vnl
@@ -739,11 +744,12 @@ Let's do a case study that will highlight some useful workflows
 : orig.jpg - 0.000000 61.085915 10 121.969466 237.904253 116.906013 255.912140 126.989525 250.427856 127.213882 219.252777 116.750320 224.883987
 : orig.jpg - 0.000000 76.528946 14 356.479721 260.201024 338.710754 243.635956 339.143494 278.192657 374.197937 276.718781 373.335052 242.708466
 
-- Note that I save the output to a file. So if we have tools that need to ingest
-  tag detections, then can use this format, and I can send them the precomputed
-  file if I want. Everything should use this format for both input and output.
-- Let's look at the data. There's a lot of stuff. Let's align the columns so
-  that we (high-maintenance humans) can more clearly see what's what.
+Note that I save the output to a file. So if we have tools that need to ingest
+tag detections, then can use this format, and I can send them the precomputed
+file if I want. Everything should use this format for both input and output.
+
+Let's look at the data. There's a lot of stuff. Let's align the columns so
+that we (high-maintenance humans) can more clearly see what's what.
 
 #+BEGIN_SRC shell :results output verbatim
 < orig.vnl vnl-align
@@ -1157,7 +1163,6 @@ is
   the "path" column, not "column 1".
 - The vnlog legend is read on input, and written on output. The output is a
   valid vnlog
-- Some enhancements are available, such as N-way joins
 
 Along the same lines there're vnl-sort and vnl-tail wrappers. All of these
 wrappers barely need any documentation. The instructions are "do what you would
@@ -1305,7 +1310,7 @@ image40.jpg  -           0.000000 61.769276 14 356.309672 259.988685 338.949097 
 #+end_example
 
 I'm not going to tell you what the flags to "vnl-sort" do: they're normal "sort"
-flags that many of you probably already familiar with.
+flags that many of you probably are already familiar with.
 
 We now have a log that contains the input contrast values and the output
 performance numbers, so we can see how the contrast affects performance. Does it
@@ -1346,8 +1351,8 @@ Apparently it did.
 
 Note the "contrast==$c" in the "vnl-filter" invocation above. The "$c" is
 expanded by the shell, so vnl-filter sees "contrast==-40". This is a row-filter
-expression. Only rows for which that expression is true are returned. I.e. I
-picked the darkest image.
+expression. Only rows for which that expression is true are returned (similar to
+tcpdump filters). I.e. I picked the darkest image.
 
 I can NOT pick an image, which will plot all the detections on top of one
 another. I can then see how consistent the hits are.
@@ -1374,7 +1379,9 @@ Let's look at the detection metrics over contrast.
 #+END_SRC
 
 Looks like the detector knows the results are less reliable as the
-contrast/noise gets crazy.
+contrast/noise gets crazy because the "margin" metric apparently likes the
+not-too-dark and not-too-bright images. And the "goodness" metric apparently is
+always 0.
 
 ** wrappers
 
@@ -1387,7 +1394,9 @@ Currently these wrappers are available:
 They do exactly what you expect. vnl-tail exists so that "vnl-tail -f" is
 available for data streaming.
 
-I might add more wrappers if the need arises.
+vnl-join adds a few extra features, such as N-way joins. Look at the manpage.
+
+I'll add more wrappers as the need arises.
 
 ** vnl-filter details
 
@@ -1435,6 +1444,10 @@ pick ALL of
 
   xc yc xlb ylb xrb yrb xrt yrt xlt ylt
 
+The tool is maximally permissive: if we actually had a column named "^[xy]",
+then the above command would pick THAT column instead. And if you had such a
+column, that's probably what you would have intended.
+
 If we pick columns that start with '!', we're asking to EXCLUDE the matching
 columns. All the -p are processed in order, adding/removing columns as
 requested. If the first -p is an exclusion, we implicitly add ALL the columns
@@ -1445,7 +1458,8 @@ whose value is the awk (or perl) expression xxx. For instance I can say
 "vnl-filter -p a=(b+c+d)/e". The expression string is passed down to the core
 language verbatim, after replacing all the field names.
 
-vnl-filter buffers the output by default. To enable streaming, pass "--unbuffered"
+vnl-filter buffers the output by default. To enable streaming, pass
+"--unbuffered"
 
 * init                                                             :noexport:
 Local Variables:

@@ -811,6 +811,7 @@ Let's talk about Apriltags: https://april.eecs.umich.edu/software/apriltag.html
 
 Here's an example showing some of these tags. They're similar to QR codes, but
 encode much less data in a much more robust way.
+
 [[file:orig.jpg]]
 
 They are useful in robotics. You can place them on robots, and then build

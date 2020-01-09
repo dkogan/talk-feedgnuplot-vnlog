@@ -15,7 +15,9 @@ in many more distros currently.
 
 These tools are written in the spirit of UNIX: a large number of simple tools
 that communicate via pipes. Usually, as part of a larger shell pipeline. They
-make very powerful one-liners possible.
+make very powerful one-liners possible. These are very useful for the initial
+exploration of data. For complex tasks, more powerful toolkits (numpy, matlab,
+excel, etc) are a better choice, but you can go a LONG way with just the shell.
 
 These tools are not the PERFECT choice for any one task, but are a GOOD choice
 for a wide range of tasks. They are great for prototyping and initial data
@@ -59,8 +61,8 @@ Let's plot it!
 seq 100 | feedgnuplot
 #+END_SRC
 
-That's it. We didn't ask for anything specific, so we got a plot with default
-settings. Let's plot lines AND points.
+That's it. We didn't ask for anything specific, so we got a plot that uses the
+default settings. Let's plot lines AND points.
 
 #+BEGIN_SRC shell :results none
 seq 100 | feedgnuplot --lines --points
@@ -75,7 +77,7 @@ size, we tell gnuplot about it:
 seq 100 | feedgnuplot --with 'linespoints pointsize 3 pointtype 7'
 #+END_SRC
 
-This MIGHT look cryptic, but this is the gnuplot syntax. If you know how to talk
+This MIGHT look cryptic, but it is the gnuplot syntax. If you know how to talk
 to gnuplot, there's nothing to learn. If you don't, then you get to learn two
 tools for the price of one.
 
@@ -83,7 +85,7 @@ Since feedgnuplot is a wrapper, we can ask it to just dump the gnuplot command
 it generates to the console, instead of to gnuplot:
 
 #+BEGIN_SRC shell :results output verbatim
-seq 100 | feedgnuplot --with 'linespoints pointsize 3 pointtype 7' --dump
+seq 10 | feedgnuplot --with 'linespoints pointsize 3 pointtype 7' --dump
 #+END_SRC
 
 #+RESULTS:
@@ -128,7 +130,7 @@ cat /proc/acpi/ibm/thermal
 #+END_SRC
 
 #+RESULTS:
-: temperatures:	45 37 34 -128 50 -128 32 -128 38 39 38 -128 -128 -128 -128 -128
+: temperatures:	49 49 33 51 50 -128 39 -128 43 50 44 -128 -128 -128 -128 -128
 
 Let me read off the temperatures every 1 second, strip "temperatures:", and
 send it to the plotter.
@@ -157,10 +159,11 @@ by spinning a core:
 while true; do true; done
 #+END_SRC
 
-Apparently probe 7 is the one sitting on the cpu. We have a nice way to plot
-these. Let's take it a step further: let's log temperatures for later
-processing. I log into a file; in a monitoring system this process would run in
-the background for a long time, gathering data
+Apparently probe 7 is the one sitting on the cpu. We learned something!
+
+Let's take it a step further. Let's say I really care about the temperature of
+this laptop. I'm going to log the temperatures to a file, which makes it
+possible to analyze later
 
 #+BEGIN_SRC shell :results none
 while true; do < /proc/acpi/ibm/thermal awk '{print $2,$3,$4,$6,$8,$10,$11,$12}'; sleep 1; done > \
@@ -191,21 +194,50 @@ tail -f /tmp/temperatures.log | \
 
 This is already pretty useful, and we built it with no effort at all. And since
 this all normal shell stuff, we can combine this sort of thing with other tools
-to get potentially a LOT of leverage of this. Example: remote web-server
-monitoring by visualizing (in real time) web server logs over ssh. This would be
-painful to do in Matlab or Excel.
+to get potentially a LOT of leverage of this. Examples:
 
-For this temperature-monitoring example, some things would make it more useful:
+- remote web-server monitoring by visualizing (in real time) web server logs
+  over ssh
+- 802.11 network quality logging
+- data throughput monitoring
 
-- comments: if we're making a logfile for later analysis, there should be text
-  that says what this data is, how it was gathered, etc.
+You wouldn't even attempt any of these with Matlab or Excel.
 
-- field labels: the meaning of each column should be stated
+** Shortcomings when logging
 
-- timestamps: right now we know that the data comes in at 1Hz. But if I look at
-  this a month from now, I won't remember that.
+We just made a very rudimentary data logging and visualization system. But if I
+care about the temperature of this laptop as much as I say I do, this has
+shortcomings. These will be familiar to everyone who ever needed to log
+anything.
 
-This is a good segue into vnlog.
+First of all, if I look at these logs in a year, I won't know what any of this
+is: what do the numbers mean? who generated them? how often? on what hardware?
+We need support for comments.
+
+This is a time series, so a time column is essential. If I made analysis tools
+to work with these logs, and then decided to add a leading time column later,
+the existing tools that expect N columns of temperature will be broken.
+
+Similarly, here probe 7 was sitting on the CPU, but maybe I'll want to process
+data from some other laptop where probe 5 is on the CPU. This also breaks
+existing tools.
+
+So what I'd actually do (for years!) is to write out annotated log lines like
+
+#+BEGIN_EXAMPLE
+time=123 cpu_temp=5 gpu_temp=6
+#+END_EXAMPLE
+
+This is unambiguous, but it's very verbose. And you MUST parse this data before
+being able to do ANYTHING with it (plot it, load it into numpy, etc). This extra
+parsing step can be done with awk or perl, but it is tedious and error-prone.
+
+After you live this way for a while, you get some clarity about what the issues
+are, and how to fix them.
+
+This is a good segue to talk about vnlog.
+
+
 
 ** Fancier usage
 *** Data formats
@@ -667,14 +699,15 @@ Note that all these things work together. I can have a histogram updating in
 real time with errorbars and colored circles plotted on top and so on.
 
 * vnlog
-A common workflow is one we have already seen in the plotting examples: we have
-a log file, and we want to visualize some data inside it. We may want to
-visualize different subsets of the same data, or we may want to visualize it
-differently, as we study it.
+To make the temperature logging nice AND widely useful I want:
 
-What we did previously is to lean on awk to select the data we want, and to
-format it into a form suitable for plotting. This works, but it's cumbersome.
-vnlog addresses these issues, and more!
+- An ASCII table for interoperability with various tools
+- Support for comments
+- Field labels. These are at least a comment for humans, but a set of tools that
+  automatically interfaces with these would be really nice
+
+The vnlog toolkit is a set of libraries and tools to read, write and manipulate
+such data. The tools are all independent; you can use all of them, or just one.
 
 ** Format
 The first part of vnlog is conceptual: it is a data format.
@@ -682,7 +715,7 @@ The first part of vnlog is conceptual: it is a data format.
 This data format is trivial, and is exactly what one would expect:
 - newline-separated records, whitespace-separated fields: just like awk
 - lines beginning with # are comments
-- first non-##, non-#! comment is a legend, labelling the fields
+- first non-##, non-#! comment is a legend, labeling the fields
 
 Here's a valid vnlog:
 
@@ -705,14 +738,13 @@ Since this is trivial, you don't NEED any special tools to do any work. The
 vnlog toolkit provides some libraries and tools to make working with this data
 nicer, but again, none of these tools or libraries are strictly necessary.
 
-Philosphy:
+Philosophy:
 
 - as before, minimal new knowledge is created. I don't actually do any work.
-  Everything is a wrapper for something else, that we're already intimately
-  familiar with
+  Everything is a wrapper for something else, that we're already familiar with
 
 - In a data processing pipeline, as much as possible, each step should use this
-  format for both input and output. This produces a uniform world that's really
+  format for both input and output. This produces a uniformity that's really
   pleasant to work with
 
 The vnlog toolkit provides some libraries and some tools to manipulate textual
@@ -737,8 +769,9 @@ fields
   /tmp/temperatures.vnl
 #+END_SRC
 
-The extra line is still a comment, so tools that ignore all comments still work.
-The previous plot-temperatures-from-file command still works with no changes:
+I made this a valid vnlog simply by echoing a legend line. This extra line is
+still a comment, so tools that ignore all comments still work. The previous
+plot-temperatures-from-file command still works with no changes:
 
 #+BEGIN_SRC shell :results none
 < /tmp/temperatures.vnl \
@@ -886,12 +919,6 @@ tag we're seeing.
 : 121.969466 10 237.904253
 : 356.479713 14 260.201017
 
-vnl-filter is another of the tools in the set: it filters the log coming in on
-stdin, and writes the result to stdout. THE OUTPUT IS ALSO A VNLOG, so you can
-chain these tools
-
--p allows you to pick particular columns, which we have done here
-
 And with the filtered data, we can plot it overlaid on top of our image
 
 #+BEGIN_SRC shell :results output verbatim
@@ -910,8 +937,9 @@ and the ID of the apriltag is interpreted by --dataid.
 The detector works, but how robust is it to changes in contrast and to noise?
 Let's find out!
 
-Let's pretend that I gathered lots of images, at different lighting levels. For
-this talk I simulate this by tweaking constrast levels and adding noise:
+Let's pretend that I gathered lots of images, at different lighting levels, and
+I had a tool to evaluate the illumination and noise levels for each. For this
+talk I simulate this by tweaking constrast levels and adding noise:
 
 #+BEGIN_SRC shell :results none
 for c (`seq -40 5 40`) { convert orig.jpg -brightness-contrast x${c}% +noise Gaussian image${c}.jpg }
@@ -1397,7 +1425,7 @@ do anything to the detection counts?
 
 #+BEGIN_SRC shell :results output verbatim
 < joint2.vnl vnl-filter -p contrast,+Ndetections | \
-  feedgnuplot --vnl --autolegend --line --points --domain --xlabel contrast
+  feedgnuplot --vnl --autolegend --line --points --domain --xlabel contrast --ymin 0 --ymax 8
 #+END_SRC
 
 #+RESULTS:
@@ -1420,11 +1448,61 @@ There're two new features in the above command:
   them. Thus --autolegend created the legend in the plot corresponding to the
   column name.
 
-Did the detector REALLY work even with the darkest, noisiest image? Let's look
-at that
+What, specifically was the difference between a 6-detection case and a
+7-detection case? Let's look at detection IDs for these two cases
 
 #+BEGIN_SRC shell :results output verbatim
-c=-40; < joint2.vnl vnl-filter -p xc,id,yc contrast==$c | \
+< joint.vnl vnl-filter 'contrast==-40' -p +id
+#+END_SRC
+
+#+RESULTS:
+: # id
+: 3
+: 5
+: 7
+: 8
+: 10
+: 14
+
+#+BEGIN_SRC shell :results output verbatim
+< joint.vnl vnl-filter 'contrast==0' -p +id
+#+END_SRC
+
+#+RESULTS:
+: # id
+: 3
+: 5
+: 7
+: 8
+: 10
+: 10
+: 14
+
+I can eyeball this, and see that when in the case of contrast==0 we saw tag 10
+twice, but in the contrast==-40 case we only saw it once. If we had lots of
+data, I wouldn't be able to eyeball this, but a command can do the comparison
+for me:
+
+#+BEGIN_SRC shell :results output verbatim
+comm -3 <(< joint.vnl vnl-filter 'contrast==-40' -p +id | vnl-sort -k id | vnl-uniq -c | sort) \
+        <(< joint.vnl vnl-filter 'contrast==0'   -p +id | vnl-sort -k id | vnl-uniq -c | sort)
+#+END_SRC
+
+#+RESULTS:
+:       1 10
+: 	      2 10
+
+For each case I tallied the detection counts of each tag, and reported counts
+that don't match. The only such mismatches here are
+
+- 1 detection  of tag 10 in the first  data file (contrast==-40)
+- 2 detection2 of tag 10 in the second data file (contrast==0)
+
+Did the detector REALLY work even with the darkest, noisiest image? Let's look
+at it
+
+#+BEGIN_SRC shell :results output verbatim
+c=-40; < joint.vnl vnl-filter -p xc,id,yc contrast==$c | \
   feedgnuplot --autolegend --with 'points pt 7 ps 3' --domain --dataid --image image${c}.jpg --square
 #+END_SRC
 
@@ -1437,11 +1515,11 @@ expanded by the shell, so vnl-filter sees "contrast==-40". This is a row-filter
 expression. Only rows for which that expression is true are returned (similar to
 tcpdump filters). I.e. I picked the darkest image.
 
-I can NOT pick an image, which will plot all the detections on top of one
-another. I can then see how consistent the hits are.
+Let's look at the detection consistency. I plot ALL the detections on top of an
+arbitrary image.
 
 #+BEGIN_SRC shell :results none
-< joint2.vnl vnl-filter -p +xc,contrast,yc | \
+< joint.vnl vnl-filter -p +xc,contrast,yc | \
   feedgnuplot --autolegend --with 'points pt 2 ps 3' --domain --dataid --image orig.jpg --square
 #+END_SRC
 
@@ -1450,15 +1528,61 @@ are fairly consistent. If we need help identifying specific detections, we can
 plot them with labels:
 
 #+BEGIN_SRC shell :results none
-< joint2.vnl vnl-filter -p +xc,yc,contrast | \
+< joint.vnl vnl-filter -p +xc,yc,contrast | \
   feedgnuplot --autolegend --with labels --domain --tuplesizeall 3 --image orig.jpg --square
 #+END_SRC
+
+Let's empirically quantify the spread. I pick an arbitrary tag, and plot a
+histogram of the detection centers, separately for x and y:
+
+#+BEGIN_SRC shell :results none
+< joint.vnl vnl-filter id==14 -p +xc,yc | \
+  feedgnuplot --autolegend --vnl --histo xc,yc --binwidth 0.1
+#+END_SRC
+
+I can separate the axes, and make the histograms appear next to each other, but
+it's not worth the typing to do it. These histograms aren't very interesting
+since we don't have a lot of data. Let's get the basic statistics
+
+#+BEGIN_SRC shell :results output verbatim
+< joint.vnl vnl-filter id==14 -p +xc | \
+  ministat
+#+END_SRC
+
+#+RESULTS:
+: x <stdin>
+: +--------------------------------------------------------------------------+
+: |                                                           x              |
+: |                                                           x              |
+: |x x           x      x  x x  x          x    x x   x   x  xx             x|
+: |                 |_____________________A_____M_______________|            |
+: +--------------------------------------------------------------------------+
+:     N           Min           Max        Median           Avg        Stddev
+: x  17       356.329     356.51215     356.44163     356.42659   0.054549882
+
+#+BEGIN_SRC shell :results output verbatim
+< joint.vnl vnl-filter id==14 -p +yc | \
+  ministat
+#+END_SRC
+
+#+RESULTS:
+: x <stdin>
+: +--------------------------------------------------------------------------+
+: |                                                        x                 |
+: |xx x  x  x            x  xx  x   x x     x     x x      x                x|
+: |        |____________________MA_____________________|                     |
+: +--------------------------------------------------------------------------+
+:     N           Min           Max        Median           Avg        Stddev
+: x  17     260.02016     260.40136     260.17201     260.17772    0.11388838
+
+ministat is not a vnlog tool, but it works with generic data, which is what this
+is. The detections of tag 14 look fairly consistent.
 
 Let's look at the detection metrics over contrast.
 
 #+BEGIN_SRC shell :results none
-< joint2.vnl vnl-filter -p contrast,+margin | \
-  feedgnuplot --vnl --autolegend --domain --points
+< joint2.vnl vnl-filter -p contrast,id,+margin | \
+  feedgnuplot --autolegend --domain --lines --points --dataid
 #+END_SRC
 
 Looks like the detector knows the results are less reliable as the
@@ -1481,7 +1605,7 @@ So none of the actual work is done by vnl-filter. For debugging, we can ask for
 the generated program. For instance:
 
 #+BEGIN_SRC shell :results output verbatim
-< joint2.vnl vnl-filter -p contrast,+margin 'xc > 5' --dumpexprs
+< joint.vnl vnl-filter -p contrast,+margin 'xc > 5' --dumpexprs
 #+END_SRC
 
 #+RESULTS:
@@ -1493,7 +1617,7 @@ passing --perl.
 We can also use vnl-filter as a thin frontend to awk, that allows column names:
 
 #+BEGIN_SRC shell :results output verbatim
-< joint2.vnl vnl-filter --eval 'xc > 5 {print contrast}' --dumpexprs
+< joint.vnl vnl-filter --eval 'xc > 5 {print contrast}' --dumpexprs
 #+END_SRC
 
 #+RESULTS:

@@ -824,15 +824,11 @@ detect the tags in an image
 These work well. But how well, exactly? How robust are they to noise? How
 robust are they to changes in contrast? Let's find out!
 
-There's a demo program included with the apriltags library that ingests an
-image, and spits out tag detections. I modified it to format those detections as
-a vnlog. (In Debian/sid do 'apt install libapriltag-dev' and 'gcc -o simple_demo
-/usr/share/doc/libapriltag-dev/examples/simple_demo.c -lapriltag -lfreeimage')
-
-Let's run it.
+I added a python interface and a commandline tool to the AprilTag library, and
+pushed these all to Debian (install with =apt install apriltag=). Let's run it.
 
 #+BEGIN_SRC shell :results output verbatim
-./simple_demo --vnl orig.jpg | tee orig.vnl
+apriltag --vnl orig.jpg | tee orig.vnl
 #+END_SRC
 
 #+RESULTS:
@@ -967,7 +963,7 @@ log file. This is a choice; we can write one result file per image. The tools
 don't care.
 
 #+BEGIN_SRC shell :results output verbatim
-./simple_demo --vnl image*.jpg | tee images.vnl
+apriltag --vnl image*.jpg | tee images.vnl
 #+END_SRC
 
 #+RESULTS:

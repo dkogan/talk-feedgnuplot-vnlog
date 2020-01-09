@@ -6,43 +6,48 @@ This talk is about two tools:
   STDIN http://www.github.com/dkogan/feedgnuplot
 
 - vnlog - a toolkit to read, write and manipulate
-  columnar ASCII data
-  http://www.github.com/dkogan/vnlog
+  columnar ASCII data http://www.github.com/dkogan/vnlog
 
-Both of these are free software, and both are available in Debian/unstable now.
-feedgnuplot has been around much longer than vnlog, so feedgnuplot is available
-in many more distros currently.
+Both of these are free software, and both are available in
+Debian/unstable now. feedgnuplot has been around much longer than
+vnlog, so feedgnuplot is available in many more distros currently.
 
-These tools are written in the spirit of UNIX: a large number of simple tools
-that communicate via pipes. Usually, as part of a larger shell pipeline. They
-make very powerful one-liners possible. These are very useful for the initial
-exploration of data. For complex tasks, more powerful toolkits (numpy, matlab,
-excel, etc) are a better choice, but you can go a LONG way with just the shell.
+These tools are written in the spirit of UNIX: a large number of
+simple tools that communicate via pipes. Usually, as part of a
+larger shell pipeline. They make very powerful one-liners
+possible. These are very useful for the initial exploration of
+data. For complex tasks, more powerful toolkits (numpy, matlab,
+excel, etc) are a better choice, but you can go a LONG way with
+just the shell.
 
-Why do any of this in the shell? Because we already live in the shell, so we can
-combine this with other tools to get a LOT of leverage out of it. Examples:
+Why do any of this in the shell? Because we already live in the
+shell, so we can combine this with other tools to get a LOT of
+leverage out of it. Examples:
 
-- remote web-server monitoring by visualizing (in real time) web server logs
-  over ssh
+- remote web-server monitoring by visualizing (in real time) web
+  server logs over ssh
 - 802.11 network quality logging
 - data throughput monitoring
 
 You wouldn't even attempt any of these with Matlab or Excel.
 
-These tools are not the PERFECT choice for any one task, but are a GOOD choice
-for a wide range of tasks. They are great for prototyping and initial data
-exploration, since you can quickly get something running.
+These tools are not the PERFECT choice for any one task, but are a
+GOOD choice for a wide range of tasks. They are great for
+prototyping and initial data exploration, since you can quickly
+get something running.
 
-Overarching philosophy: do not create new knowledge. These are all largely
-wrappers around other core tools, so most of the usage is inherited from those
+Overarching philosophy: do not create new knowledge. These are all
+largely wrappers around other core tools, so most of the usage is
+inherited from those
 
-feedgnuplot has much more clear applicability, so I'll talk about it first.
+feedgnuplot has much more clear applicability, so I'll talk about
+it first.
 
 * feedgnuplot
 
-This is a frontend to the gnuplot plotting tool. It doesn't actually plot
-anything: it generates commands for gnuplot, and IT makes the plots. We
-visualize standard input!
+This is a frontend to the gnuplot plotting tool. It doesn't
+actually plot anything: it generates commands for gnuplot, and IT
+makes the plots. We visualize standard input!
 
 ** Basic usage
 Let's go over the basics, and get something running.
@@ -50,176 +55,163 @@ Let's go over the basics, and get something running.
 Before we can plot anything, we need data to plot
 
 #+BEGIN_SRC shell :results output verbatim
-seq 10
-#+END_SRC
+seq 10 #+END_SRC
 
 #+RESULTS:
 #+begin_example
-1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-#+end_example
+1 2 3 4 5 6 7 8 9 10 #+end_example
 
 Let's plot it!
 
 #+BEGIN_SRC shell :results none
-seq 100 | feedgnuplot
-#+END_SRC
+seq 100 | feedgnuplot #+END_SRC
 
-That's it. We didn't ask for anything specific, so we got a plot that uses the
-default settings. Let's plot lines AND points.
+That's it. We didn't ask for anything specific, so we got a plot
+that uses the default settings. Let's plot lines AND points.
 
 #+BEGIN_SRC shell :results none
-seq 100 | feedgnuplot --lines --points
-#+END_SRC
+seq 100 | feedgnuplot --lines --points #+END_SRC
 
-Most of the interactions between feedgnuplot and gnuplot are passing strings
-verbatim to gnuplot, but VERY common stylings, such as --points and --lines have
-their own feedgnuplot options. If we want to change the point style or point
-size, we tell gnuplot about it:
+Most of the interactions between feedgnuplot and gnuplot are
+passing strings verbatim to gnuplot, but VERY common stylings,
+such as --points and --lines have their own feedgnuplot options.
+If we want to change the point style or point size, we tell
+gnuplot about it:
 
 #+BEGIN_SRC shell :results none
 seq 100 | feedgnuplot --with 'linespoints pointsize 3 pointtype 7'
 #+END_SRC
 
-This MIGHT look cryptic, but it is the gnuplot syntax. If you know how to talk
-to gnuplot, there's nothing to learn. If you don't, then you get to learn two
-tools for the price of one.
+This MIGHT look cryptic, but it is the gnuplot syntax. If you know
+how to talk to gnuplot, there's nothing to learn. If you don't,
+then you get to learn two tools for the price of one.
 
-Furthermore, my tool does not even know what this string means, it just passes
-it down to gnuplot verbatim. So everything the underlying tool supports is
-available here.
+Furthermore, my tool does not even know what this string means, it
+just passes it down to gnuplot verbatim. So everything the
+underlying tool supports is available here.
 
-And since I'm reading a pipe, all the other normal pipe things are available. So
-far, we fed data into the tool, and when all the data has been read in, we made
-a plot. Instead, we can make a plot of the data AS IT COMES IN by passing
---stream. This is REALLY useful for all types of realtime monitoring, so let's
-do some of that: let's investigate the temperature in my laptop. There're a
+And since I'm reading a pipe, all the other normal pipe things are
+available. So far, we fed data into the tool, and when all the
+data has been read in, we made a plot. Instead, we can make a plot
+of the data AS IT COMES IN by passing --stream. This is REALLY
+useful for all types of realtime monitoring, so let's do some of
+that: let's investigate the temperature in my laptop. There're a
 number of thermal probes in this machine:
 
 #+BEGIN_SRC shell :results output verbatim
-cat /proc/acpi/ibm/thermal
-#+END_SRC
+cat /proc/acpi/ibm/thermal #+END_SRC
 
 #+RESULTS:
 : temperatures:	49 49 33 51 50 -128 39 -128 43 50 44 -128 -128 -128 -128 -128
 
-Let me read off the temperatures every 1 second, strip "temperatures:", and
-send it to the plotter.
+Let me read off the temperatures every 1 second, strip
+"temperatures:", and send it to the plotter.
 
 #+BEGIN_SRC shell :results none
-while true; do < /proc/acpi/ibm/thermal awk '{$1=""; print}'; sleep 1; done |
-  feedgnuplot --stream --with linespoints --exit
-#+END_SRC
+while true; do < /proc/acpi/ibm/thermal awk '{$1=""; print}';
+  sleep 1; done | feedgnuplot --stream --with linespoints --exit
+  #+END_SRC
 
-It looks like there're a number of sensors that aren't hooked-up, and always
-return -128. Let me ignore those, and let's also label the axes and datasets.
-
-#+BEGIN_SRC shell :results none
-while true; do < /proc/acpi/ibm/thermal awk '{print $2,$3,$4,$6,$8,$10,$11,$12}'; sleep 1; done |
-  feedgnuplot --stream --with linespoints --autolegend \
-              --xlabel 'Time (s)' \
-              --ylabel 'Temperature (degrees C)' \
-              --title  'Laptop temperatures vs. time' \
-              --exit
-#+END_SRC
-
-Cool. The data looks uninteresting right now, but I can make it more interesting
-by spinning a core:
+It looks like there're a number of sensors that aren't hooked-up,
+and always return -128. Let me ignore those, and let's also label
+the axes and datasets.
 
 #+BEGIN_SRC shell :results none
-while true; do true; done
-#+END_SRC
+while true; do < /proc/acpi/ibm/thermal awk '{print
+  $2,$3,$4,$6,$8,$10,$11,$12}'; sleep 1; done | feedgnuplot
+  --stream --with linespoints --autolegend \ --xlabel 'Time (s)' \
+  --ylabel 'Temperature (degrees C)' \ --title 'Laptop
+  temperatures vs. time' \ --exit #+END_SRC
 
-Apparently probe 7 is the one sitting on the cpu. We learned something!
-
-Let's take it a step further. Let's say I really care about the temperature of
-this laptop. I'm going to log the temperatures to a file, which makes it
-possible to analyze later
-
-#+BEGIN_SRC shell :results none
-while true; do < /proc/acpi/ibm/thermal awk '{print $2,$3,$4,$6,$8,$10,$11,$12}'; sleep 1; done > \
-  /tmp/temperatures.log
-#+END_SRC
-
-Whenever I like, I can then plot the data in this file, to look at ALL the past
-temperature history.
+Cool. The data looks uninteresting right now, but I can make it
+more interesting by spinning a core:
 
 #+BEGIN_SRC shell :results none
-< /tmp/temperatures.log \
-    feedgnuplot --with linespoints --autolegend \
-                --xlabel 'Time (s)' \
-                --ylabel 'Temperature (degrees C)' \
-                --title  'Laptop temperatures vs. time'
-#+END_SRC
+while true; do true; done #+END_SRC
 
-Or, I can read the data off the end of this file to get realtime telemetry
+Apparently probe 7 is the one sitting on the cpu. We learned
+something!
+
+Let's take it a step further. Let's say I really care about the
+temperature of this laptop. I'm going to log the temperatures to a
+file, which makes it possible to analyze later
 
 #+BEGIN_SRC shell :results none
-tail -f /tmp/temperatures.log | \
-          feedgnuplot --with linespoints --autolegend \
-                      --xlabel 'Time (s)' \
-                      --ylabel 'Temperature (degrees C)' \
-                      --title  'Laptop temperatures vs. time' \
-                      --stream --xlen 10 --exit
-#+END_SRC
+while true; do < /proc/acpi/ibm/thermal awk '{print
+  $2,$3,$4,$6,$8,$10,$11,$12}'; sleep 1; done > \
+  /tmp/temperatures.log #+END_SRC
+
+Whenever I like, I can then plot the data in this file, to look at
+ALL the past temperature history.
+
+#+BEGIN_SRC shell :results none
+< /tmp/temperatures.log \ feedgnuplot --with linespoints
+    --autolegend \ --xlabel 'Time (s)' \ --ylabel 'Temperature
+    (degrees C)' \ --title 'Laptop temperatures vs. time'
+    #+END_SRC
+
+Or, I can read the data off the end of this file to get realtime
+telemetry
+
+#+BEGIN_SRC shell :results none
+tail -f /tmp/temperatures.log | \ feedgnuplot --with linespoints
+          --autolegend \ --xlabel 'Time (s)' \ --ylabel
+          'Temperature (degrees C)' \ --title 'Laptop temperatures
+          vs. time' \ --stream --xlen 10 --exit #+END_SRC
 
 We get BOTH: logging AND realtime visualization.
 
-feedgnuplot can do much much more than what I showed here. Colors! 3D plots!
-Images! Histograms! Contours! Hardcopies! Self-plotting data!
+feedgnuplot can do much much more than what I showed here. Colors!
+3D plots! Images! Histograms! Contours! Hardcopies! Self-plotting
+data!
 
 ** Shortcomings when logging
 
-We just made a very rudimentary data logging and visualization system. But if I
-care about the temperature of this laptop as much as I say I do, this has
-shortcomings. These will be familiar to everyone who ever needed to log
-anything.
+We just made a very rudimentary data logging and visualization
+system. But if I care about the temperature of this laptop as much
+as I say I do, this has shortcomings. These will be familiar to
+everyone who ever needed to log anything.
 
-First of all, if I look at these logs in a year, I won't know what any of this
-is: what do the numbers mean? who generated them? how often? on what hardware?
-We need support for comments.
+First of all, if I look at these logs in a year, I won't know what
+any of this is: what do the numbers mean? who generated them? how
+often? on what hardware? We need support for comments.
 
-This is a time series, so a time column is essential. If I made analysis tools
-to work with these logs, and then decided to add a leading time column later,
-the existing tools that expect N columns of temperature will be broken.
+This is a time series, so a time column is essential. If I made
+analysis tools to work with these logs, and then decided to add a
+leading time column later, the existing tools that expect N
+columns of temperature will be broken.
 
-Similarly, here probe 7 was sitting on the CPU, but maybe I'll want to process
-data from some other laptop where probe 5 is on the CPU. This also breaks
-existing tools.
+Similarly, here probe 7 was sitting on the CPU, but maybe I'll
+want to process data from some other laptop where probe 5 is on
+the CPU. This also breaks existing tools.
 
-So what I'd actually do (for years!) is to write out annotated log lines like
+So what I'd actually do (for years!) is to write out annotated log
+lines like
 
 #+BEGIN_EXAMPLE
-time=123 cpu_temp=5 gpu_temp=6
-#+END_EXAMPLE
+time=123 cpu_temp=5 gpu_temp=6 #+END_EXAMPLE
 
-This is unambiguous, but it's very verbose. And you MUST parse this data before
-being able to do ANYTHING with it (plot it, load it into numpy, etc). This extra
-parsing step can be done with awk or perl, but it is tedious and error-prone.
+This is unambiguous, but it's very verbose. And you MUST parse
+this data before being able to do ANYTHING with it (plot it, load
+it into numpy, etc). This extra parsing step can be done with awk
+or perl, but it is tedious and error-prone.
 
-After you live this way for a while, you get some clarity about what the issues
-are, and how to fix them.
+After you live this way for a while, you get some clarity about
+what the issues are, and how to fix them.
 
 This is a good segue to talk about vnlog.
 
 ** Fancier usage
 *** Data formats
 
-There are 2 on/off switches that control the interpretation of the data read by
-feedgnuplot. Both switches are off by default
+There are 2 on/off switches that control the interpretation of the
+data read by feedgnuplot. Both switches are off by default
 
 - --[no]domain
 
-  If --domain then the FIRST item on each line is the x-coordinate for the rest
-  of the points on that line. I.e. each line is interpreted as
+  If --domain then the FIRST item on each line is the x-coordinate
+  for the rest of the points on that line. I.e. each line is
+  interpreted as
 
     x y0 y1 y2 y3 y4 ....
 
@@ -227,29 +219,31 @@ feedgnuplot. Both switches are off by default
 
 - --[no]dataid
 
-  Each dataset has an id. By default, the IDs are numeric, indexed by the data
-  position on each line. So if we run with --nodomain --nodataid and we have a
-  line
+  Each dataset has an id. By default, the IDs are numeric, indexed
+  by the data position on each line. So if we run with --nodomain
+  --nodataid and we have a line
 
     y0 y1 y2 y3 y4
 
-  then this line describes 5 points, one in 5 different datasets. The datasets
-  have IDs 0,1,2,3,4
+  then this line describes 5 points, one in 5 different datasets.
+  The datasets have IDs 0,1,2,3,4
 
-  If we pass --dataid, then each point is represented by 2 items: a string ID
-  followed by the data. So if we run with --nodomain --dataid and we have a line
+  If we pass --dataid, then each point is represented by 2 items:
+  a string ID followed by the data. So if we run with --nodomain
+  --dataid and we have a line
 
     position y0 speed y1 direction y2 temperature y3
 
-  then this line describes 4 points, one in 4 different datasets. The datasets
-  have IDs "position", "speed", "direction" and "temperature"
+  then this line describes 4 points, one in 4 different datasets.
+  The datasets have IDs "position", "speed", "direction" and
+  "temperature"
 
---domain and --dataid are independent, so together they can describe 4 different
-data formats.
+--domain and --dataid are independent, so together they can
+describe 4 different data formats.
 
-The data parser is as permissive as possible. Each line can have different
-numbers of points. Some datasets can appear much more often that others
-(--dataid makes this possible).
+The data parser is as permissive as possible. Each line can have
+different numbers of points. Some datasets can appear much more
+often that others (--dataid makes this possible).
 
 The IDs are used for 2 things:
 
@@ -259,122 +253,81 @@ The IDs are used for 2 things:
 Example:
 
 #+BEGIN_SRC shell :results output verbatim
-seq 20 | awk '$1%2 { print $1*$1,"odd",$1 - 5} !($1%2){ print $1*$1,"even",$1}'
-#+END_SRC
+seq 20 | awk '$1%2 { print $1*$1,"odd",$1 - 5} !($1%2){ print
+$1*$1,"even",$1}' #+END_SRC
 
 #+RESULTS:
 #+begin_example
-1 odd -4
-4 even 2
-9 odd -2
-16 even 4
-25 odd 0
-36 even 6
-49 odd 2
-64 even 8
-81 odd 4
-100 even 10
-121 odd 6
-144 even 12
-169 odd 8
-196 even 14
-225 odd 10
-256 even 16
-289 odd 12
-324 even 18
-361 odd 14
-400 even 20
-#+end_example
+1 odd -4 4 even 2 9 odd -2 16 even 4 25 odd 0 36 even 6 49 odd 2
+64 even 8 81 odd 4 100 even 10 121 odd 6 144 even 12 169 odd 8 196
+even 14 225 odd 10 256 even 16 289 odd 12 324 even 18 361 odd 14
+400 even 20 #+end_example
 
 #+BEGIN_SRC shell :results none
-seq 20 | awk '$1%2 { print $1*$1,"odd",$1 - 5} !($1%2){ print $1*$1,"even",$1}' | \
-  feedgnuplot --domain --dataid                \
-               --style odd  'with points pt 7' \
-               --style even 'with lines'       \
-               --legend odd "Odd domain"       \
-               --autolegend
-#+END_SRC
+seq 20 | awk '$1%2 { print $1*$1,"odd",$1 - 5} !($1%2){ print
+  $1*$1,"even",$1}' | \ feedgnuplot --domain --dataid \ --style
+  odd 'with points pt 7' \ --style even 'with lines' \ --legend
+  odd "Odd domain" \ --autolegend #+END_SRC
 
-So far each point was described by one domain value (possibly implicit with
---nodomain) and one range value, but this is just a special case. I can specify
-range counts with --rangesizeall (for ALL the data in a plot) or --rangesize
-(for each dataset separately). Alternately I can ask for
---tuplesizeall/--tuplesize if I'd rather count domain+range together. The extra
-range points are used for various fancier gnuplot styles: errorbars, vectors,
-colors, symbol sizes, etc. The gnuplot docs describe the specific formats. For
-instance:
+So far each point was described by one domain value (possibly
+implicit with --nodomain) and one range value, but this is just a
+special case. I can specify range counts with --rangesizeall (for
+ALL the data in a plot) or --rangesize (for each dataset
+separately). Alternately I can ask for --tuplesizeall/--tuplesize
+if I'd rather count domain+range together. The extra range points
+are used for various fancier gnuplot styles: errorbars, vectors,
+colors, symbol sizes, etc. The gnuplot docs describe the specific
+formats. For instance:
 
 #+BEGIN_SRC shell :results output verbatim
-gnuplot -e 'help yerrorbars'
-#+END_SRC
+gnuplot -e 'help yerrorbars' #+END_SRC
 
 #+RESULTS:
 #+begin_example
- The `yerrorbars` (or `errorbars`) style is only relevant to 2D data plots.
- `yerrorbars` is like `points`, except that a vertical error bar is also drawn.
- At each point (x,y), a line is drawn from (x,y-ydelta) to (x,y+ydelta) or
- from (x,ylow) to (x,yhigh), depending on how many data columns are provided.
- The appearance of the tic mark at the ends of the bar is controlled by
- `set errorbars`.
+ The `yerrorbars` (or `errorbars`) style is only relevant to 2D
+ data plots. `yerrorbars` is like `points`, except that a vertical
+ error bar is also drawn. At each point (x,y), a line is drawn
+ from (x,y-ydelta) to (x,y+ydelta) or from (x,ylow) to (x,yhigh),
+ depending on how many data columns are provided. The appearance
+ of the tic mark at the ends of the bar is controlled by `set
+ errorbars`.
 
-      2 columns:  [implicit x] y ydelta
-      3 columns:  x  y  ydelta
-      4 columns:  x  y  ylow  yhigh
+      2 columns: [implicit x] y ydelta 3 columns: x y ydelta 4
+      columns: x y ylow yhigh
 
- An additional input column (4th or 5th) may be used to provide information 
- such as variable point color.
+ An additional input column (4th or 5th) may be used to provide
+ information such as variable point color.
 
- See also
- errorbar demo.
-#+end_example
+ See also errorbar demo. #+end_example
 
-It is the user's responsibility to make sure the right data is passed for a
-specific style: feedgnuplot doesn't know anything about styles, and just passes
-on the data to gnuplot. Example: let's add colors and point sizes to the
-previous plot:
+It is the user's responsibility to make sure the right data is
+passed for a specific style: feedgnuplot doesn't know anything
+about styles, and just passes on the data to gnuplot. Example:
+let's add colors and point sizes to the previous plot:
 
 #+BEGIN_SRC shell :results output verbatim
-seq 20 | awk '$1%2 { print $1*$1,"odd",$1 - 5,$1,$1} !($1%2){ print $1*$1,"even",$1,$1}'
-#+END_SRC
+seq 20 | awk '$1%2 { print $1*$1,"odd",$1 - 5,$1,$1} !($1%2){
+print $1*$1,"even",$1,$1}' #+END_SRC
 
 #+RESULTS:
 #+begin_example
-1 odd -4 1 1
-4 even 2 2
-9 odd -2 3 3
-16 even 4 4
-25 odd 0 5 5
-36 even 6 6
-49 odd 2 7 7
-64 even 8 8
-81 odd 4 9 9
-100 even 10 10
-121 odd 6 11 11
-144 even 12 12
-169 odd 8 13 13
-196 even 14 14
-225 odd 10 15 15
-256 even 16 16
-289 odd 12 17 17
-324 even 18 18
-361 odd 14 19 19
-400 even 20 20
-#+end_example
+1 odd -4 1 1 4 even 2 2 9 odd -2 3 3 16 even 4 4 25 odd 0 5 5 36
+even 6 6 49 odd 2 7 7 64 even 8 8 81 odd 4 9 9 100 even 10 10 121
+odd 6 11 11 144 even 12 12 169 odd 8 13 13 196 even 14 14 225 odd
+10 15 15 256 even 16 16 289 odd 12 17 17 324 even 18 18 361 odd 14
+19 19 400 even 20 20 #+end_example
 
 #+BEGIN_SRC shell :results none
-seq 20 | awk '$1%2 { print $1*$1,"odd",$1 - 5,$1,$1} !($1%2){ print $1*$1,"even",$1,$1}' | \
-  feedgnuplot --domain --dataid                                    \
-               --style odd  'with points pt 7 palette ps variable' \
-               --tuplesize odd 4                                   \
-               --style even 'with lines palette'                   \
-               --tuplesize even 3                                  \
-               --legend odd "Odd domain"                           \
-               --autolegend
-#+END_SRC
+seq 20 | awk '$1%2 { print $1*$1,"odd",$1 - 5,$1,$1} !($1%2){
+  print $1*$1,"even",$1,$1}' | \ feedgnuplot --domain --dataid \
+  --style odd 'with points pt 7 palette ps variable' \ --tuplesize
+  odd 4 \ --style even 'with lines palette' \ --tuplesize even 3 \
+  --legend odd "Odd domain" \ --autolegend #+END_SRC
 
-For streaming plots to work, feedgnuplot must receive its input as soon as it is
-available. Thus any buffering upstream must be turned off. Look at fflush() in
-gawk and -Winteractive in mawk for instance.
+For streaming plots to work, feedgnuplot must receive its input as
+soon as it is available. Thus any buffering upstream must be
+turned off. Look at fflush() in gawk and -Winteractive in mawk for
+instance.
 
 We can also plot in 3d. This works like one would expect:
 
@@ -384,28 +337,24 @@ We can also plot in 3d. This works like one would expect:
 Example:
 
 #+BEGIN_SRC shell :results output verbatim
-seq 200 | perl -nE 'chomp; $c=cos($_/10); $s=sin($_/10);            \
-                    say "$c $s $_ $_ " . ($_+30) . " " . (200-$_);'
-#+END_SRC
+seq 200 | perl -nE 'chomp; $c=cos($_/10); $s=sin($_/10); \ say "$c
+                    $s $_ $_ " . ($_+30) . " " . (200-$_);'
+                    #+END_SRC
 
 #+RESULTS:
 #+begin_example
-0.995004165278026 0.0998334166468282 1 1 31 199
-0.980066577841242 0.198669330795061 2 2 32 198
-0.955336489125606 0.29552020666134 3 3 33 197
-0.921060994002885 0.389418342308651 4 4 34 196
-0.877582561890373 0.479425538604203 5 5 35 195
-0.825335614909678 0.564642473395035 6 6 36 194
-0.764842187284488 0.644217687237691 7 7 37 193
-0.696706709347165 0.717356090899523 8 8 38 192
-0.621609968270664 0.783326909627483 9 9 39 191
-0.54030230586814 0.841470984807897 10 10 40 190
-0.453596121425577 0.891207360061435 11 11 41 189
-0.362357754476674 0.932039085967226 12 12 42 188
-0.267498828624587 0.963558185417193 13 13 43 187
-0.169967142900241 0.98544972998846 14 14 44 186
-0.0707372016677029 0.997494986604054 15 15 45 185
--0.0291995223012888 0.999573603041505 16 16 46 184
+0.995004165278026 0.0998334166468282 1 1 31 199 0.980066577841242
+0.198669330795061 2 2 32 198 0.955336489125606 0.29552020666134 3
+3 33 197 0.921060994002885 0.389418342308651 4 4 34 196
+0.877582561890373 0.479425538604203 5 5 35 195 0.825335614909678
+0.564642473395035 6 6 36 194 0.764842187284488 0.644217687237691 7
+7 37 193 0.696706709347165 0.717356090899523 8 8 38 192
+0.621609968270664 0.783326909627483 9 9 39 191 0.54030230586814
+0.841470984807897 10 10 40 190 0.453596121425577 0.891207360061435
+11 11 41 189 0.362357754476674 0.932039085967226 12 12 42 188
+0.267498828624587 0.963558185417193 13 13 43 187 0.169967142900241
+0.98544972998846 14 14 44 186 0.0707372016677029 0.997494986604054
+15 15 45 185 -0.0291995223012888 0.999573603041505 16 16 46 184
 -0.128844494295525 0.991664810452469 17 17 47 183
 -0.227202094693087 0.973847630878195 18 18 48 182
 -0.323289566863503 0.946300087687414 19 19 49 181
@@ -439,35 +388,32 @@ seq 200 | perl -nE 'chomp; $c=cos($_/10); $s=sin($_/10);            \
 -0.0123886634628906 -0.999923257564101 47 47 77 153
 0.0874989834394464 -0.996164608835841 48 48 78 152
 0.186512369422576 -0.982452612624332 49 49 79 151
-0.283662185463226 -0.958924274663138 50 50 80 150
-0.37797774271298 -0.925814682327732 51 51 81 149
-0.468516671300377 -0.883454655720153 52 52 82 148
-0.554374336179161 -0.832267442223901 53 53 83 147
-0.634692875942635 -0.772764487555987 54 54 84 146
-0.70866977429126 -0.705540325570392 55 55 85 145
-0.77556587851025 -0.631266637872322 56 56 86 144
-0.83471278483916 -0.550685542597638 57 57 87 143
-0.885519516941319 -0.464602179413757 58 58 88 142
-0.927478430744036 -0.373876664830236 59 59 89 141
-0.960170286650366 -0.279415498198926 60 60 90 140
-0.983268438442584 -0.182162504272096 61 61 91 139
-0.996542097023217 -0.0830894028174964 62 62 92 138
-0.999858636383415 0.0168139004843497 63 63 93 137
-0.993184918758193 0.116549204850494 64 64 94 136
-0.976587625728023 0.215119988087816 65 65 95 135
-0.95023259195853 0.311541363513378 66 66 96 134
-0.914383148235319 0.404849920616598 67 67 97 133
-0.869397490349825 0.494113351138608 68 68 98 132
-0.815725100125357 0.5784397643882 69 69 99 131
-0.753902254343305 0.656986598718789 70 70 100 130
+0.283662185463226 -0.958924274663138 50 50 80 150 0.37797774271298
+-0.925814682327732 51 51 81 149 0.468516671300377
+-0.883454655720153 52 52 82 148 0.554374336179161
+-0.832267442223901 53 53 83 147 0.634692875942635
+-0.772764487555987 54 54 84 146 0.70866977429126
+-0.705540325570392 55 55 85 145 0.77556587851025
+-0.631266637872322 56 56 86 144 0.83471278483916
+-0.550685542597638 57 57 87 143 0.885519516941319
+-0.464602179413757 58 58 88 142 0.927478430744036
+-0.373876664830236 59 59 89 141 0.960170286650366
+-0.279415498198926 60 60 90 140 0.983268438442584
+-0.182162504272096 61 61 91 139 0.996542097023217
+-0.0830894028174964 62 62 92 138 0.999858636383415
+0.0168139004843497 63 63 93 137 0.993184918758193
+0.116549204850494 64 64 94 136 0.976587625728023 0.215119988087816
+65 65 95 135 0.95023259195853 0.311541363513378 66 66 96 134
+0.914383148235319 0.404849920616598 67 67 97 133 0.869397490349825
+0.494113351138608 68 68 98 132 0.815725100125357 0.5784397643882
+69 69 99 131 0.753902254343305 0.656986598718789 70 70 100 130
 0.684546666442807 0.728969040125876 71 71 101 129
 0.608351314532255 0.793667863849153 72 72 102 128
-0.526077517381105 0.850436620628564 73 73 103 127
-0.43854732757439 0.898708095811627 74 74 104 126
-0.346635317835026 0.937999976774739 75 75 105 125
-0.251259842582256 0.967919672031486 76 76 106 124
-0.153373862037864 0.988168233877 77 77 107 123
-0.0539554205626498 0.998543345374605 78 78 108 122
+0.526077517381105 0.850436620628564 73 73 103 127 0.43854732757439
+0.898708095811627 74 74 104 126 0.346635317835026
+0.937999976774739 75 75 105 125 0.251259842582256
+0.967919672031486 76 76 106 124 0.153373862037864 0.988168233877
+77 77 107 123 0.0539554205626498 0.998543345374605 78 78 108 122
 -0.0460021256395369 0.998941341839772 79 79 109 121
 -0.145500033808614 0.989358246623382 80 80 110 120
 -0.243544153735791 0.969889810845086 81 81 111 119
@@ -580,111 +526,91 @@ seq 200 | perl -nE 'chomp; $c=cos($_/10); $s=sin($_/10);            \
 0.99877235658721 -0.0495356408783674 188 188 218 12
 0.998727967243502 0.0504226878068112 189 189 219 11
 0.988704618186669 0.149877209662952 190 190 220 10
-0.96880245940721 0.24783420798296 191 191 221 9
-0.939220346696871 0.343314928819895 192 192 222 8
-0.900253854747304 0.435365360372893 193 193 223 7
-0.852292323865464 0.523065765157696 194 194 224 6
-0.795814969813944 0.605539869719601 195 195 225 5
-0.731386095645497 0.681963620068136 196 196 226 4
-0.659649453373462 0.751573415352148 197 197 227 3
-0.581321811814436 0.813673737507105 198 198 228 2
-0.497185794871205 0.867644100641667 199 199 229 1
-0.408082061813392 0.912945250727628 200 200 230 0
-#+end_example
+0.96880245940721 0.24783420798296 191 191 221 9 0.939220346696871
+0.343314928819895 192 192 222 8 0.900253854747304
+0.435365360372893 193 193 223 7 0.852292323865464
+0.523065765157696 194 194 224 6 0.795814969813944
+0.605539869719601 195 195 225 5 0.731386095645497
+0.681963620068136 196 196 226 4 0.659649453373462
+0.751573415352148 197 197 227 3 0.581321811814436
+0.813673737507105 198 198 228 2 0.497185794871205
+0.867644100641667 199 199 229 1 0.408082061813392
+0.912945250727628 200 200 230 0 #+end_example
 
 
 #+BEGIN_SRC shell :results none
-seq 200 | perl -nE 'chomp; $c=cos($_/10); $s=sin($_/10);              \
-                    say "$c $s $_ $_ " . ($_+30) . " " . (200-$_);' | \
-   feedgnuplot --3d                                                   \
-               --domain                                               \
-               --with 'linespoints pt 7 palette'                      \
-               --tuplesizeall 4
-#+END_SRC
+seq 200 | perl -nE 'chomp; $c=cos($_/10); $s=sin($_/10); \ say "$c
+                    $s $_ $_ " . ($_+30) . " " . (200-$_);' | \
+                    feedgnuplot --3d \ --domain \ --with
+                    'linespoints pt 7 palette' \ --tuplesizeall 4
+                    #+END_SRC
 
-I also provide direct histogram support. For instance, let's look at the
-distribution of file sizes in /tmp.
+I also provide direct histogram support. For instance, let's look
+at the distribution of file sizes in /tmp.
 
 #+BEGIN_SRC shell :results none
 ls -l /tmp | awk '$1 != "total" {print $5/1000000}' | \
-  feedgnuplot --histogram 0 --binwidth 1
-#+END_SRC
+  feedgnuplot --histogram 0 --binwidth 1 #+END_SRC
 
-I can ask for a square aspect ratio with --square. If plotting in 3D, I can ask
-for a square xy, but a free z with --square_xy
+I can ask for a square aspect ratio with --square. If plotting in
+3D, I can ask for a square xy, but a free z with --square_xy
 
 I can set/unset gnuplot variables with --set/--unset.
 
-I can plot on top of an image with --image (very useful for computer vision).
+I can plot on top of an image with --image (very useful for
+computer vision).
 
-I can also make hardcopies. Let's save our beautiful histogram to a file
+I can also make hardcopies. Let's save our beautiful histogram to
+a file
 
 #+BEGIN_SRC shell :results output verbatim
 ls -l /tmp | awk '$1 != "total" {print $5/1000000}' | \
-  feedgnuplot --histogram 0 --binwidth 1 --hardcopy /tmp/filesizes.pdf
-#+END_SRC
+  feedgnuplot --histogram 0 --binwidth 1 --hardcopy
+  /tmp/filesizes.pdf #+END_SRC
 
 #+RESULTS:
 : Wrote output to /tmp/filesizes.pdf
 
 [[file:/tmp/filesizes.pdf]]
 
-Finally, since this is firmly rooted in the world of UNIXy shells, I can make
-self-plotting data files. For instance:
+Finally, since this is firmly rooted in the world of UNIXy shells,
+I can make self-plotting data files. For instance:
 
 #+BEGIN_SRC shell :results output verbatim
-cat selfplotting.dat
-#+END_SRC
+cat selfplotting.dat #+END_SRC
 
 #+RESULTS:
 #+begin_example
-#!/usr/bin/feedgnuplot --domain --lines
--10 100
--9 81
--8 64
--7 49
--6 36
--5 25
--4 16
--3 9
--2 4
--1 1
-0 0
-1 1
-2 4
-3 9
-4 16
-5 25
-6 36
-7 49
-8 64
-9 81
-10 100
-#+end_example
+#!/usr/bin/feedgnuplot --domain --lines -10 100 -9 81 -8 64 -7 49
+-6 36 -5 25 -4 16 -3 9 -2 4 -1 1 0 0 1 1 2 4 3 9 4 16 5 25 6 36 7
+49 8 64 9 81 10 100 #+end_example
 
 #+BEGIN_SRC shell :results none
-./selfplotting.dat
-#+END_SRC
+./selfplotting.dat #+END_SRC
 
-Note that all these things work together. I can have a histogram updating in
-real time with errorbars and colored circles plotted on top and so on.
+Note that all these things work together. I can have a histogram
+updating in real time with errorbars and colored circles plotted
+on top and so on.
 
 * vnlog
 To make the temperature logging nice AND widely useful I want:
 
 - An ASCII table for interoperability with various tools
 - Support for comments
-- Field labels. These are at least a comment for humans, but a set of tools that
-  automatically interfaces with these would be really nice
+- Field labels. These are at least a comment for humans, but a set
+  of tools that automatically interfaces with these would be
+  really nice
 
-The vnlog toolkit is a set of libraries and tools to read, write and manipulate
-such data. The tools are all independent; you can use all of them, or just one.
+The vnlog toolkit is a set of libraries and tools to read, write
+and manipulate such data. The tools are all independent; you can
+use all of them, or just one.
 
 ** Format
 The first part of vnlog is conceptual: it is a data format.
 
 This data format is trivial, and is exactly what one would expect:
-- newline-separated records, whitespace-separated fields: just like awk
+- newline-separated records, whitespace-separated fields: just
+  like awk
 - lines beginning with # are comments
 - first non-##, non-#! comment is a legend, labeling the fields
 
@@ -693,141 +619,124 @@ Here's a valid vnlog:
 #+BEGIN_EXAMPLE
 ## comment
 # time temperature
-1 20
-## another comment
-2 21
-3 25
-4 -
-5 22
-#+END_EXAMPLE
+1 20 ## another comment 2 21 3 25 4 - 5 22 #+END_EXAMPLE
 
-This format "just works" with awk. It "just works" with feedgnuplot. You can
-easily read this in matlab or excel or numpy. And you can easily write this even
-with just printf()
+This format "just works" with awk. It "just works" with
+feedgnuplot. You can easily read this in matlab or excel or numpy.
+And you can easily write this even with just printf()
 
-Since this is trivial, you don't NEED any special tools to do any work. The
-vnlog toolkit provides some libraries and tools to make working with this data
-nicer, but again, none of these tools or libraries are strictly necessary.
+Since this is trivial, you don't NEED any special tools to do any
+work. The vnlog toolkit provides some libraries and tools to make
+working with this data nicer, but again, none of these tools or
+libraries are strictly necessary.
 
 Philosophy:
 
 - as before, minimal new knowledge is created. I don't actually do any work.
-  Everything is a wrapper for something else, that we're already familiar with.
-  A friendly learning curve results
+  Everything is a wrapper for something else, that we're already
+  familiar with. A friendly learning curve results
 
 - In a data processing pipeline, as much as possible, each step should use this
-  format for both input and output. This produces a uniformity that's really
-  pleasant to work with
+  format for both input and output. This produces a uniformity
+  that's really pleasant to work with
 
-The vnlog toolkit provides some libraries and some tools to manipulate textual
-data. In my own work I now read and write this format for pretty much EVERYTHING
-I do. And a common workflow is to write EVERYTHING to these logs (routinely
-hundreds of columns!), and to use the tools to pull out the stuff I need for
+The vnlog toolkit provides some libraries and some tools to
+manipulate textual data. In my own work I now read and write this
+format for pretty much EVERYTHING I do. And a common workflow is
+to write EVERYTHING to these logs (routinely hundreds of
+columns!), and to use the tools to pull out the stuff I need for
 analysis.
 
-The provided libraries to read/write vnlog are useful, but not very interesting,
-and I won't talk about them here. I want to focus on the shell tools.
+The provided libraries to read/write vnlog are useful, but not
+very interesting, and I won't talk about them here. I want to
+focus on the shell tools.
 
 Let's do some case studies to highlight some useful workflows
 
 ** Demo: temperatures
 
-Let's revisit our temperature logging, but let's add a header identifying the
-fields
+Let's revisit our temperature logging, but let's add a header
+identifying the fields
 
 #+BEGIN_SRC shell :results none
-(echo '# temp0 temp1 temp2 temp3 temp4 temp5 temp6 temp7';
-  while true; do < /proc/acpi/ibm/thermal awk '{print $2,$3,$4,$6,$8,$10,$11,$12}'; sleep 1; done) > \
-  /tmp/temperatures.vnl
-#+END_SRC
+(echo '# temp0 temp1 temp2 temp3 temp4 temp5 temp6 temp7'; while
+  true; do < /proc/acpi/ibm/thermal awk '{print
+  $2,$3,$4,$6,$8,$10,$11,$12}'; sleep 1; done) > \
+  /tmp/temperatures.vnl #+END_SRC
 
-I made this a valid vnlog simply by echoing a legend line. This extra line is
-still a comment, so tools that ignore all comments still work. The previous
-plot-temperatures-from-file command still works with no changes:
-
-#+BEGIN_SRC shell :results none
-< /tmp/temperatures.vnl \
-    feedgnuplot --with linespoints --autolegend \
-                --xlabel 'Time (s)' \
-                --ylabel 'Temperature (degrees C)' \
-                --title  'Laptop temperatures vs. time'
-#+END_SRC
-
-But we can do more things. I can tell feedgnuplot that this is a vnlog (with
---vnl), and it's then able to label the fields
-
-Note: I didn't have to manually tell feedgnuplot the name of each column: it
-figured those out from the log file
+I made this a valid vnlog simply by echoing a legend line. This
+extra line is still a comment, so tools that ignore all comments
+still work. The previous plot-temperatures-from-file command still
+works with no changes:
 
 #+BEGIN_SRC shell :results none
-< /tmp/temperatures.vnl \
-    feedgnuplot --with linespoints --autolegend \
-                --xlabel 'Time (s)' \
-                --ylabel 'Temperature (degrees C)' \
-                --title  'Laptop temperatures vs. time' \
-                --vnl
-#+END_SRC
+< /tmp/temperatures.vnl \ feedgnuplot --with linespoints
+    --autolegend \ --xlabel 'Time (s)' \ --ylabel 'Temperature
+    (degrees C)' \ --title 'Laptop temperatures vs. time'
+    #+END_SRC
 
-And I can do fancier things. For instance I can pull out just the temperatures
-from probe 7 (the CPU probe), rename that column to indicate that it's from the
-CPU probe, and convert it to degrees Fahrenheit:
+But we can do more things. I can tell feedgnuplot that this is a
+vnlog (with --vnl), and it's then able to label the fields
+
+Note: I didn't have to manually tell feedgnuplot the name of each
+column: it figured those out from the log file
+
+#+BEGIN_SRC shell :results none
+< /tmp/temperatures.vnl \ feedgnuplot --with linespoints
+    --autolegend \ --xlabel 'Time (s)' \ --ylabel 'Temperature
+    (degrees C)' \ --title 'Laptop temperatures vs. time' \ --vnl
+    #+END_SRC
+
+And I can do fancier things. For instance I can pull out just the
+temperatures from probe 7 (the CPU probe), rename that column to
+indicate that it's from the CPU probe, and convert it to degrees
+Fahrenheit:
 
 #+BEGIN_SRC shell :results output verbatim
-< /tmp/temperatures.vnl \
-    vnl-filter -p CPUtempF='32+temp7*9./5.' | head
-#+END_SRC
+< /tmp/temperatures.vnl \ vnl-filter -p
+    CPUtempF='32+temp7*9./5.' | head #+END_SRC
 
 #+RESULTS:
 #+begin_example
 # CPUtempF
-104
-104
-104
-104
-104
-104
-104
-104
-104
-#+end_example
+104 104 104 104 104 104 104 104 104 #+end_example
 
-Note that the output of vnl-filter is still a valid vnlog, so, I can plot that
-too with the same, identical plot command.
+Note that the output of vnl-filter is still a valid vnlog, so, I
+can plot that too with the same, identical plot command.
 
 #+BEGIN_SRC shell :results none
-< /tmp/temperatures.vnl \
-    vnl-filter -p CPUtempF='32+temp7*9./5.' | \
-    feedgnuplot --with linespoints --autolegend \
-                --xlabel 'Time (s)' \
-                --ylabel 'Temperature (degrees C)' \
-                --title  'Laptop temperatures vs. time' \
-                --vnl
-#+END_SRC
+< /tmp/temperatures.vnl \ vnl-filter -p
+    CPUtempF='32+temp7*9./5.' | \ feedgnuplot --with linespoints
+    --autolegend \ --xlabel 'Time (s)' \ --ylabel 'Temperature
+    (degrees C)' \ --title 'Laptop temperatures vs. time' \ --vnl
+    #+END_SRC
 
 ** Demo: Apriltags
-Let's talk about Apriltags: https://april.eecs.umich.edu/software/apriltag.html
+Let's talk about Apriltags:
+https://april.eecs.umich.edu/software/apriltag.html
 
-Here's an example showing some of these tags. They're similar to QR codes, but
-encode much less data in a much more robust way.
+Here's an example showing some of these tags. They're similar to
+QR codes, but encode much less data in a much more robust way.
 
 [[file:orig.jpg]]
 
-They are useful in robotics. You can place them on robots, and then build
-tracking systems that are based on detecting these visually
+They are useful in robotics. You can place them on robots, and
+then build tracking systems that are based on detecting these
+visually
 
-This system was designed and built by Edwin Olson, who's now a professor at
-the University of Michigan. There's a free-software library available to
-detect the tags in an image
+This system was designed and built by Edwin Olson, who's now a
+professor at the University of Michigan. There's a free-software
+library available to detect the tags in an image
 
-These work well. But how well, exactly? How robust are they to noise? How
-robust are they to changes in contrast? Let's find out!
+These work well. But how well, exactly? How robust are they to
+noise? How robust are they to changes in contrast? Let's find out!
 
-I added a python interface and a commandline tool to the AprilTag library, and
-pushed these all to Debian (install with =apt install apriltag=). Let's run it.
+I added a python interface and a commandline tool to the AprilTag
+library, and pushed these all to Debian (install with =apt install
+apriltag=). Let's run it.
 
 #+BEGIN_SRC shell :results output verbatim
-apriltag --vnl orig.jpg | tee orig.vnl
-#+END_SRC
+apriltag --vnl orig.jpg | tee orig.vnl #+END_SRC
 
 #+RESULTS:
 : # path Ndetections hamming margin id xc yc xlb ylb xrb yrb xrt yrt xlt ylt
@@ -840,18 +749,19 @@ apriltag --vnl orig.jpg | tee orig.vnl
 : orig.jpg - 1 99.998466 10 121.969466 237.904253 116.906013 255.912140 126.989525 250.427856 127.213882 219.252777 116.750320 224.883987
 : orig.jpg - 0 158.942520 14 356.479713 260.201017 374.197937 276.718781 373.335052 242.708466 338.710754 243.635956 339.143494 278.192627
 
-Note that I save the output to a file. So if we have downstream tools that
-ingest tag detections, they can use this format, and I can send them the
-precomputed file if I want. If everything in a pipeline uses this format for
-both input and output you get a caching system for free, and you can analyze
-each stage in the pipeline with the same tools.
+Note that I save the output to a file. So if we have downstream
+tools that ingest tag detections, they can use this format, and I
+can send them the precomputed file if I want. If everything in a
+pipeline uses this format for both input and output you get a
+caching system for free, and you can analyze each stage in the
+pipeline with the same tools.
 
-Let's look at the data. There's a lot of stuff. Let's align the columns so
-that we (high-maintenance humans) can more clearly see what's what.
+Let's look at the data. There's a lot of stuff. Let's align the
+columns so that we (high-maintenance humans) can more clearly see
+what's what.
 
 #+BEGIN_SRC shell :results output verbatim
-< orig.vnl vnl-align
-#+END_SRC
+< orig.vnl vnl-align #+END_SRC
 
 #+RESULTS:
 : # path   Ndetections hamming   margin   id     xc         yc         xlb        ylb        xrb        yrb        xrt        yrt        xlt        ylt   
@@ -866,23 +776,24 @@ that we (high-maintenance humans) can more clearly see what's what.
 
 That's better.
 
-vnl-align realigns the columns for easier reading. Since the vnlog format is not
-whitespace-sensitive, this doesn't change the meaning of the data.
+vnl-align realigns the columns for easier reading. Since the vnlog
+format is not whitespace-sensitive, this doesn't change the
+meaning of the data.
 
-Note that here we have a record that reports a detection count, followed by the
-detections themselves, written as one detection per record. The null data fields
-are represented with "-". Storing a detection count separately in this way is
-not required, but is often useful.
+Note that here we have a record that reports a detection count,
+followed by the detections themselves, written as one detection
+per record. The null data fields are represented with "-". Storing
+a detection count separately in this way is not required, but is
+often useful.
 
 Let's visualize these detections to see if the detector worked.
 
-First, we filter the log to keep only the data we want. Columns xc and yc are
-the pixel coordinates of the centers of detected tags, and id indicates which
-tag we're seeing.
+First, we filter the log to keep only the data we want. Columns xc
+and yc are the pixel coordinates of the centers of detected tags,
+and id indicates which tag we're seeing.
 
 #+BEGIN_SRC shell :results output verbatim
-< orig.vnl vnl-filter -p xc,id,yc
-#+END_SRC
+< orig.vnl vnl-filter -p xc,id,yc #+END_SRC
 
 #+RESULTS:
 : # xc id yc
@@ -894,514 +805,897 @@ tag we're seeing.
 : 121.969466 10 237.904253
 : 356.479713 14 260.201017
 
-And with the filtered data, we can plot it overlaid on top of our image
+And with the filtered data, we can plot it overlaid on top of our
+image
 
 #+BEGIN_SRC shell :results output verbatim
-< orig.vnl vnl-filter -p xc,id,yc | \
-  feedgnuplot --autolegend --image orig.jpg --square --domain --dataid --with 'points pt 7 ps 2'
-#+END_SRC
+< orig.vnl vnl-filter -p xc,id,yc | \ feedgnuplot --autolegend
+  --image orig.jpg --square --domain --dataid --with 'points pt 7
+  ps 2' #+END_SRC
 
 #+RESULTS:
 
 So the detector looks like it works.
 
-Note that I gave feedgnuplot xc,id,yc in that order specifically, and I used
---domain --dataid. The --domain picks up the first values as the X coordinate,
-and the ID of the apriltag is interpreted by --dataid.
+Note that I gave feedgnuplot xc,id,yc in that order specifically,
+and I used --domain --dataid. The --domain picks up the first
+values as the X coordinate, and the ID of the apriltag is
+interpreted by --dataid.
 
-The detector works, but how robust is it to changes in contrast and to noise?
-Let's find out!
+The detector works, but how robust is it to changes in contrast
+and to noise? Let's find out!
 
-Let's pretend that I gathered lots of images, at different lighting levels, and
-I had a tool to evaluate the illumination and noise levels for each. For this
-talk I simulate this by tweaking constrast levels and adding noise:
+Let's pretend that I gathered lots of images, at different
+lighting levels, and I had a tool to evaluate the illumination and
+noise levels for each. For this talk I simulate this by tweaking
+constrast levels and adding noise:
 
 #+BEGIN_SRC shell :results none
-for c (`seq -40 5 40`) { convert orig.jpg -brightness-contrast x${c}% +noise Gaussian image${c}.jpg }
-geeqie image*.jpg(Om)
+for c (`seq -40 5 40`) { convert orig.jpg -brightness-contrast
+x${c}% +noise Gaussian image${c}.jpg } geeqie image*.jpg(Om)
 #+END_SRC
 
-This creates a different image with the contrast level in the filename, and I
-pull that out into a separate vnlog. If we had REAL images, I'd get this from
-the image intensities. I write these into "contrast.vnl":
+This creates a different image with the contrast level in the
+filename, and I pull that out into a separate vnlog. If we had
+REAL images, I'd get this from the image intensities. I write
+these into "contrast.vnl":
 
 #+BEGIN_SRC shell :results output verbatim
-(echo '# path contrast'; for fil (image*.jpg) { echo -n "$fil "; echo $fil | sed 's/image//; s/.jpg//' }) | tee contrast.vnl
+(echo '# path contrast'; for fil (image*.jpg) { echo -n "$fil ";
+echo $fil | sed 's/image//; s/.jpg//' }) | tee contrast.vnl
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
 # path contrast
-image-10.jpg -10
-image-15.jpg -15
-image-20.jpg -20
-image-25.jpg -25
-image-30.jpg -30
-image-35.jpg -35
-image-40.jpg -40
-image-5.jpg -5
-image0.jpg 0
-image10.jpg 10
-image15.jpg 15
-image20.jpg 20
-image25.jpg 25
-image30.jpg 30
-image35.jpg 35
-image40.jpg 40
-image5.jpg 5
-#+end_example
+image-10.jpg -10 image-15.jpg -15 image-20.jpg -20 image-25.jpg
+-25 image-30.jpg -30 image-35.jpg -35 image-40.jpg -40 image-5.jpg
+-5 image0.jpg 0 image10.jpg 10 image15.jpg 15 image20.jpg 20
+image25.jpg 25 image30.jpg 30 image35.jpg 35 image40.jpg 40
+image5.jpg 5 #+end_example
 
-Let's run the apriltag detector over each image, dumping everything into one big
-log file. This is a choice; we can write one result file per image. The tools
-don't care.
+Let's run the apriltag detector over each image, dumping
+everything into one big log file. This is a choice; we can write
+one result file per image. The tools don't care.
 
 #+BEGIN_SRC shell :results output verbatim
-apriltag --vnl image*.jpg | tee images.vnl
-#+END_SRC
+apriltag --vnl image*.jpg | tee images.vnl #+END_SRC
 
 #+RESULTS:
 #+begin_example
 # path Ndetections hamming margin id xc yc xlb ylb xrb yrb xrt yrt xlt ylt
-image-10.jpg 7 - - - - - - - - - - - - -
-image-10.jpg - 0 133.228790 3 582.427479 172.936536 591.850769 182.842194 591.838501 164.225586 572.823181 162.840607 571.616455 182.943344
-image-10.jpg - 0 118.189064 5 703.348698 271.582973 719.518005 289.604218 722.225098 255.228485 687.284119 253.678452 684.806030 287.648315
-image-10.jpg - 0 129.060806 7 288.166344 226.822277 301.674896 241.709244 303.065674 212.641235 274.475433 211.734344 273.701416 240.589859
-image-10.jpg - 0 123.397102 8 463.631410 227.988129 477.481323 243.204834 478.576904 214.390076 450.013763 213.026611 448.608704 241.656433
-image-10.jpg - 0 129.203400 10 93.840148 241.733127 110.223991 256.762543 108.734070 225.777008 76.841858 226.140060 78.474304 258.194824
-image-10.jpg - 1 84.740097 10 122.046326 237.967775 116.819801 256.152130 126.952614 250.317734 127.483841 219.049332 116.846260 224.878326
-image-10.jpg - 0 138.365524 14 356.483924 260.289075 374.122284 276.698975 373.411011 242.703537 338.622467 243.671616 339.278168 278.164124
-image-15.jpg 6 - - - - - - - - - - - - -
-image-15.jpg - 0 119.090736 3 582.479922 172.904344 591.818481 182.805328 591.854919 164.191101 572.918213 162.766769 571.673340 182.948120
-image-15.jpg - 0 104.502808 5 703.303741 271.573825 719.463257 289.667725 722.127625 255.229462 687.334351 253.692810 684.836853 287.608215
-image-15.jpg - 0 123.752258 7 288.173350 226.972440 301.650116 241.718216 303.114655 212.617386 274.180573 211.662064 273.833252 240.749878
-image-15.jpg - 0 117.788940 8 463.624143 227.972192 477.328552 243.134048 478.583252 214.458542 450.151825 213.067108 448.602997 241.541885
-image-15.jpg - 0 119.841087 10 93.913351 241.711663 110.141037 256.623718 108.668335 225.953796 76.862602 226.043274 78.400108 258.279327
-image-15.jpg - 0 128.748459 14 356.448505 260.209195 374.105316 276.768463 373.324860 242.792709 338.765228 243.625107 339.132111 278.079803
-image-20.jpg 6 - - - - - - - - - - - - -
-image-20.jpg - 0 109.074486 3 582.415676 172.876204 591.806091 182.941132 591.780701 164.218140 572.846741 162.619934 571.642761 182.835876
-image-20.jpg - 0 106.336151 5 703.371569 271.547979 719.665710 289.771118 722.044189 255.275558 687.349976 253.629654 684.904541 287.641235
-image-20.jpg - 0 105.022606 7 288.180316 226.993460 301.656830 241.697708 303.133911 212.686707 274.134949 211.668533 273.791779 240.759598
-image-20.jpg - 0 109.120575 8 463.618107 227.984229 477.453400 243.188705 478.614136 214.371277 450.018982 213.039291 448.602478 241.614975
-image-20.jpg - 0 117.623390 10 93.921881 241.635701 110.156013 256.733612 108.709496 225.906082 76.985909 225.885071 78.414314 258.131134
-image-20.jpg - 0 113.352577 14 356.469479 260.279268 374.185577 276.701263 373.424316 242.589371 338.584961 243.701157 339.138306 278.361816
-image-25.jpg 6 - - - - - - - - - - - - -
-image-25.jpg - 0 104.335648 3 582.526272 172.855311 591.867737 182.788071 591.744507 164.311249 572.900146 162.619873 571.673584 182.914291
-image-25.jpg - 0 98.022957 5 703.273382 271.582895 719.558838 289.752594 722.151733 255.156494 687.378235 253.848663 684.847351 287.615723
-image-25.jpg - 0 97.193115 7 288.060779 227.126745 301.596832 241.792313 303.156311 212.408813 273.927643 211.814270 274.094910 240.743271
-image-25.jpg - 0 95.469902 8 463.602927 227.895852 477.407318 243.203674 478.615387 214.312836 450.184204 213.015701 448.516754 241.545563
-image-25.jpg - 0 98.262482 10 93.841113 241.682854 110.217911 256.763306 108.755135 225.799042 76.955551 226.133911 78.342644 258.189117
-image-25.jpg - 0 104.164268 14 356.452689 260.333124 374.091003 276.639069 373.551086 242.770279 338.544189 243.777405 339.044830 278.213837
-image-30.jpg 6 - - - - - - - - - - - - -
-image-30.jpg - 0 95.374634 3 582.501977 172.989544 591.924927 182.841492 592.060547 164.185059 572.580872 162.616760 571.644287 182.990662
-image-30.jpg - 0 91.537254 5 703.303321 271.479994 719.498535 289.681763 722.097778 255.171768 687.362793 253.564468 684.737061 287.590210
-image-30.jpg - 0 91.375900 7 288.246087 226.917722 301.759216 241.682281 303.143890 212.775528 274.154541 211.521179 273.792999 240.637756
-image-30.jpg - 0 93.561913 8 463.650286 228.004253 477.502258 243.191528 478.482697 214.481354 449.823456 212.844543 448.779022 241.562576
-image-30.jpg - 0 93.258263 10 93.847161 241.586968 110.432304 256.804718 108.496826 225.938553 76.887894 226.025940 78.425941 258.059540
-image-30.jpg - 0 93.091080 14 356.465512 260.065703 374.374695 276.615784 373.186188 242.657562 338.772125 243.715042 338.958557 278.292450
-image-35.jpg 6 - - - - - - - - - - - - -
-image-35.jpg - 0 81.925522 3 582.424420 172.951977 592.035706 182.755753 591.916199 164.190948 572.666138 162.998260 571.573975 182.967072
-image-35.jpg - 0 75.238800 5 703.397631 271.510614 719.537476 289.639771 722.098877 255.290466 687.403015 253.544586 684.826416 287.617981
-image-35.jpg - 0 76.286034 7 288.068763 227.001554 301.768127 241.929855 303.107391 212.602173 274.029419 211.702774 273.796326 240.667313
-image-35.jpg - 0 75.554955 8 463.729167 227.979582 477.382050 243.061859 478.648376 214.507813 450.075348 212.896271 448.658325 241.588272
-image-35.jpg - 0 82.714676 10 93.806019 241.641933 110.250320 256.656097 108.780518 225.697556 77.105728 226.394043 78.208862 258.249298
-image-35.jpg - 0 82.168640 14 356.670133 260.314619 374.048706 276.738953 373.677734 243.021011 338.629639 243.264709 339.142181 278.137329
-image-40.jpg 6 - - - - - - - - - - - - -
-image-40.jpg - 0 74.795692 3 582.341647 172.951027 591.837585 183.155731 592.057739 164.131790 572.974792 162.885040 571.521912 182.772034
-image-40.jpg - 0 71.265434 5 703.318835 271.491706 719.642029 289.909821 721.993958 255.312790 687.448792 253.584900 684.692322 287.628510
-image-40.jpg - 0 68.908607 7 288.134806 226.779044 301.716553 241.643524 303.003479 212.381638 274.403351 211.750717 273.701294 240.755081
-image-40.jpg - 0 61.691715 8 463.534022 227.842210 477.432739 243.159348 478.359863 214.350327 450.114685 213.053375 448.506287 241.517822
-image-40.jpg - 0 77.625397 10 93.873280 241.623824 110.513222 256.672058 108.530014 226.064285 77.033516 226.394882 78.226112 258.234802
-image-40.jpg - 0 73.437790 14 356.463973 260.278878 374.184784 276.776245 373.534241 242.657455 338.538574 243.591049 339.160217 278.141327
-image-5.jpg 7 - - - - - - - - - - - - -
-image-5.jpg - 0 146.238892 3 582.581842 173.022827 591.862793 182.837769 592.110779 164.303558 572.888550 162.771820 571.704956 182.975510
-image-5.jpg - 0 130.926834 5 703.316733 271.513006 719.540344 289.723969 722.108398 255.226425 687.392090 253.637634 684.838867 287.527618
-image-5.jpg - 0 144.299271 7 288.165935 226.949293 301.684631 241.653244 303.145905 212.573822 274.172394 211.728867 273.864258 240.673843
-image-5.jpg - 0 132.030685 8 463.609509 227.987100 477.383698 243.182129 478.637054 214.372070 450.011261 212.986160 448.601654 241.584290
-image-5.jpg - 1 93.211800 10 122.010988 237.612926 116.735390 255.911591 126.933197 250.353958 127.294868 219.285538 117.007805 224.662292
-image-5.jpg - 0 147.744156 10 93.943953 241.580348 110.304306 256.606415 108.602013 225.927856 77.034477 226.049942 78.394371 258.184845
-image-5.jpg - 0 147.717911 14 356.447363 260.234741 374.159393 276.730865 373.412231 242.704163 338.671570 243.679230 339.058167 278.203796
-image0.jpg 7 - - - - - - - - - - - - -
-image0.jpg - 0 152.046204 3 582.519363 173.033192 591.861633 182.869690 592.102722 164.273453 572.868591 162.871872 571.678711 182.942169
-image0.jpg - 0 137.730133 5 703.321189 271.506498 719.565247 289.741455 722.132263 255.222824 687.414185 253.649902 684.806580 287.533539
-image0.jpg - 0 137.643906 7 288.195621 227.011527 301.624725 241.717529 303.179321 212.669662 274.220184 211.707245 273.876526 240.717255
-image0.jpg - 0 147.959732 8 463.620918 227.838993 477.517273 243.120804 478.381042 214.398315 450.132507 213.005798 448.585907 241.529984
-image0.jpg - 1 99.661888 10 122.060121 238.170460 117.010849 256.043365 126.975830 250.311508 127.432625 219.153412 116.722054 224.986252
-image0.jpg - 0 155.917755 10 93.870650 241.599170 110.244667 256.736389 108.645515 225.793991 77.065552 226.063431 78.335129 258.218048
-image0.jpg - 0 155.337341 14 356.560603 260.296740 374.131195 276.638489 373.440552 242.828842 338.751099 243.732788 339.169281 278.293823
-image10.jpg 7 - - - - - - - - - - - - -
-image10.jpg - 0 175.721802 3 582.490331 173.017079 591.779419 182.918350 592.171021 164.148972 572.967651 162.866821 571.704712 182.897369
-image10.jpg - 0 158.279556 5 703.343955 271.498776 719.575073 289.678345 722.105164 255.089188 687.394409 253.634583 684.866699 287.660004
-image10.jpg - 0 167.794479 7 288.231886 226.965028 301.741760 241.690445 303.171539 212.650345 274.156708 211.623444 273.915253 240.682755
-image10.jpg - 0 168.151886 8 463.638522 227.911007 477.483978 243.159195 478.564240 214.365463 450.079803 212.978607 448.627838 241.533661
-image10.jpg - 0 171.818054 10 93.926200 241.552944 110.299309 256.630188 108.640846 225.921890 77.023811 225.988312 78.339165 258.110718
-image10.jpg - 1 112.581711 10 121.976516 237.557809 116.783173 256.147583 127.108536 250.258301 127.065208 219.342636 116.836899 224.838516
-image10.jpg - 0 182.821091 14 356.548748 260.285709 374.113953 276.648285 373.427460 242.750793 338.674408 243.635162 339.212372 278.296082
-image15.jpg 7 - - - - - - - - - - - - -
-image15.jpg - 0 167.957428 3 582.509230 172.951137 591.895203 182.904465 591.866028 164.171371 572.961304 162.826065 571.880859 182.924057
-image15.jpg - 0 159.378632 5 703.365615 271.555547 719.533630 289.598602 722.238892 255.163025 687.398804 253.737030 684.793396 287.686584
-image15.jpg - 0 161.780823 7 288.236865 226.882460 301.719025 241.696518 303.163391 212.686295 274.431976 211.713791 273.726257 240.683060
-image15.jpg - 0 161.562607 8 463.658827 227.915890 477.559265 243.181870 478.517700 214.405685 450.083679 213.007156 448.606720 241.601791
-image15.jpg - 1 122.935966 10 121.943891 237.496870 116.730835 256.094025 127.121193 250.291702 127.026627 219.364624 116.806755 224.801300
-image15.jpg - 0 159.466690 10 93.891194 241.603576 110.321274 256.625061 108.637001 225.881729 77.026535 226.184769 78.422783 258.095856
-image15.jpg - 0 174.717819 14 356.440053 260.143360 374.236023 276.702148 373.289948 242.703842 338.692352 243.629486 338.974487 278.220093
-image20.jpg 7 - - - - - - - - - - - - -
-image20.jpg - 0 170.566071 3 582.546184 172.984338 591.835266 182.885056 591.941345 164.277161 573.019653 162.830536 571.750610 182.989380
-image20.jpg - 0 157.554382 5 703.380983 271.462281 719.601624 289.504761 722.079346 255.153061 687.378540 253.662506 684.840820 287.633514
-image20.jpg - 0 148.164841 7 288.221572 226.888636 301.730774 241.643265 303.158844 212.554276 274.346527 211.734436 273.757538 240.768860
-image20.jpg - 0 152.385071 8 463.603803 227.924714 477.361694 243.103333 478.652740 214.313797 450.088623 213.013870 448.543549 241.545868
-image20.jpg - 0 157.655396 10 93.806114 241.555816 110.330559 256.587433 108.625015 225.725784 77.090378 226.350189 78.339211 258.078064
-image20.jpg - 1 122.149773 10 121.910546 238.040866 116.833344 255.858124 126.919151 250.553116 127.276955 219.208710 116.681580 224.978119
-image20.jpg - 0 176.182709 14 356.391787 260.091792 374.186127 276.631439 373.220428 242.611343 338.830109 243.768402 338.930695 278.229187
-image25.jpg 7 - - - - - - - - - - - - -
-image25.jpg - 0 156.569031 3 582.555855 172.964075 591.881836 182.886383 591.908020 164.275742 573.162048 162.969604 571.812561 182.944794
-image25.jpg - 0 149.783554 5 703.370325 271.485056 719.571106 289.579956 722.005371 255.198441 687.405640 253.653854 684.875061 287.649506
-image25.jpg - 0 138.127594 7 288.361469 226.776104 301.760620 241.530075 303.033844 212.779861 274.597717 211.620667 273.665253 240.795090
-image25.jpg - 0 145.040298 8 463.590099 227.854750 477.438965 243.120590 478.592957 214.287933 450.128937 213.016281 448.546387 241.458511
-image25.jpg - 0 146.684967 10 93.806771 241.653028 110.195465 256.574799 108.705811 225.812683 77.000519 226.351074 78.452278 257.977600
-image25.jpg - 1 116.530792 10 122.027877 238.087012 116.779823 255.890152 126.909157 250.476608 127.586792 219.229324 116.810875 224.845291
-image25.jpg - 0 168.714798 14 356.435486 260.075024 374.362427 276.672455 373.109222 242.620758 338.802032 243.749313 339.157288 278.162048
-image30.jpg 7 - - - - - - - - - - - - -
-image30.jpg - 0 148.999191 3 582.581100 172.947478 591.957214 182.952179 591.853882 164.375839 573.162231 162.897156 571.879395 182.839996
-image30.jpg - 0 134.839859 5 703.385162 271.425324 719.641113 289.546783 722.001526 255.144775 687.430237 253.639435 684.815735 287.664825
-image30.jpg - 0 132.647964 7 288.328057 226.668981 301.694946 241.536774 303.040375 212.699677 274.801819 211.623947 273.437866 240.807175
-image30.jpg - 0 138.254410 8 463.529916 227.848052 477.454071 243.149216 478.495239 214.328369 450.063293 213.049667 448.536469 241.393143
-image30.jpg - 0 135.838211 10 93.779785 241.541987 110.278488 256.579834 108.715004 225.731537 77.190239 226.421341 78.328300 257.898956
-image30.jpg - 1 104.018181 10 121.978985 237.261604 116.780342 255.958664 127.258064 250.105988 126.930664 219.452759 116.879570 224.854355
-image30.jpg - 0 162.389801 14 356.332425 260.038280 374.267059 276.619476 373.120758 242.545563 338.821777 243.849075 338.965485 278.133881
-image35.jpg 6 - - - - - - - - - - - - -
-image35.jpg - 0 143.577362 3 582.600484 172.970921 591.871887 182.975571 591.901184 164.392624 573.244202 162.874680 571.833435 182.901672
-image35.jpg - 0 132.913101 5 703.354418 271.446508 719.579712 289.532715 722.019775 255.178665 687.430542 253.696289 684.825195 287.595703
-image35.jpg - 0 111.070091 7 288.361074 226.702227 301.673553 241.470291 303.000641 212.758560 274.801788 211.660370 273.559723 240.799988
-image35.jpg - 0 127.737274 8 463.503393 227.800829 477.408844 243.124283 478.443115 214.264877 450.153595 213.089691 448.510895 241.384598
-image35.jpg - 0 130.645859 10 93.731565 241.597933 110.253548 256.516602 108.655945 225.578430 77.092133 226.573212 78.464676 257.985077
-image35.jpg - 0 151.636505 14 356.323759 260.149991 374.061615 276.654358 373.041077 242.599030 338.820221 243.863647 339.112976 278.219025
-image40.jpg 6 - - - - - - - - - - - - -
-image40.jpg - 0 136.289703 3 582.558174 173.086671 591.866516 183.162384 592.072815 164.372025 573.329590 163.097290 571.919434 182.830902
-image40.jpg - 0 118.706474 5 703.370626 271.440331 719.597351 289.528534 722.069885 255.157288 687.408142 253.646683 684.924805 287.502686
-image40.jpg - 0 104.010826 7 288.453467 226.625569 301.623322 241.275070 303.012390 212.798691 274.992462 211.652206 273.384918 240.936447
-image40.jpg - 0 116.560539 8 463.612217 227.854467 477.438110 243.070892 478.463898 214.325760 450.166351 213.056290 448.613708 241.516922
-image40.jpg - 0 114.659264 10 93.623283 241.564606 110.165688 256.693634 108.681740 225.542252 77.223244 226.565781 78.488289 257.668396
-image40.jpg - 0 139.278503 14 356.398684 259.988609 374.230560 276.631653 372.945068 242.714706 339.058807 243.804764 339.001495 278.150726
-image5.jpg 7 - - - - - - - - - - - - -
-image5.jpg - 0 162.240234 3 582.368414 172.974550 591.744507 182.823959 591.876160 164.065033 572.796631 162.919571 571.699768 182.971924
-image5.jpg - 0 150.063400 5 703.354047 271.475288 719.536255 289.653900 722.035400 255.210068 687.447998 253.606903 684.775146 287.651306
-image5.jpg - 0 161.968475 7 288.198273 226.976219 301.650482 241.698074 303.180023 212.598557 274.209167 211.666794 273.837860 240.757599
-image5.jpg - 0 156.497696 8 463.647128 227.953977 477.486053 243.175110 478.532440 214.446274 450.056244 213.005661 448.613586 241.596191
-image5.jpg - 0 172.235916 10 93.911328 241.621363 110.236282 256.737793 108.719185 225.908813 77.150673 226.101486 78.310966 258.174835
-image5.jpg - 1 103.423279 10 122.002295 237.681535 116.768059 256.101654 126.945274 250.327789 127.198502 219.395248 116.962845 224.788467
-image5.jpg - 0 168.502563 14 356.548485 260.258082 374.107086 276.708954 373.353363 242.794128 338.602478 243.444244 339.178833 278.308960
+image-10.jpg 7 - - - - - - - - - - - - - image-10.jpg - 0
+133.228790 3 582.427479 172.936536 591.850769 182.842194
+591.838501 164.225586 572.823181 162.840607 571.616455 182.943344
+image-10.jpg - 0 118.189064 5 703.348698 271.582973 719.518005
+289.604218 722.225098 255.228485 687.284119 253.678452 684.806030
+287.648315 image-10.jpg - 0 129.060806 7 288.166344 226.822277
+301.674896 241.709244 303.065674 212.641235 274.475433 211.734344
+273.701416 240.589859 image-10.jpg - 0 123.397102 8 463.631410
+227.988129 477.481323 243.204834 478.576904 214.390076 450.013763
+213.026611 448.608704 241.656433 image-10.jpg - 0 129.203400 10
+93.840148 241.733127 110.223991 256.762543 108.734070 225.777008
+76.841858 226.140060 78.474304 258.194824 image-10.jpg - 1
+84.740097 10 122.046326 237.967775 116.819801 256.152130
+126.952614 250.317734 127.483841 219.049332 116.846260 224.878326
+image-10.jpg - 0 138.365524 14 356.483924 260.289075 374.122284
+276.698975 373.411011 242.703537 338.622467 243.671616 339.278168
+278.164124 image-15.jpg 6 - - - - - - - - - - - - - image-15.jpg -
+0 119.090736 3 582.479922 172.904344 591.818481 182.805328
+591.854919 164.191101 572.918213 162.766769 571.673340 182.948120
+image-15.jpg - 0 104.502808 5 703.303741 271.573825 719.463257
+289.667725 722.127625 255.229462 687.334351 253.692810 684.836853
+287.608215 image-15.jpg - 0 123.752258 7 288.173350 226.972440
+301.650116 241.718216 303.114655 212.617386 274.180573 211.662064
+273.833252 240.749878 image-15.jpg - 0 117.788940 8 463.624143
+227.972192 477.328552 243.134048 478.583252 214.458542 450.151825
+213.067108 448.602997 241.541885 image-15.jpg - 0 119.841087 10
+93.913351 241.711663 110.141037 256.623718 108.668335 225.953796
+76.862602 226.043274 78.400108 258.279327 image-15.jpg - 0
+128.748459 14 356.448505 260.209195 374.105316 276.768463
+373.324860 242.792709 338.765228 243.625107 339.132111 278.079803
+image-20.jpg 6 - - - - - - - - - - - - - image-20.jpg - 0
+109.074486 3 582.415676 172.876204 591.806091 182.941132
+591.780701 164.218140 572.846741 162.619934 571.642761 182.835876
+image-20.jpg - 0 106.336151 5 703.371569 271.547979 719.665710
+289.771118 722.044189 255.275558 687.349976 253.629654 684.904541
+287.641235 image-20.jpg - 0 105.022606 7 288.180316 226.993460
+301.656830 241.697708 303.133911 212.686707 274.134949 211.668533
+273.791779 240.759598 image-20.jpg - 0 109.120575 8 463.618107
+227.984229 477.453400 243.188705 478.614136 214.371277 450.018982
+213.039291 448.602478 241.614975 image-20.jpg - 0 117.623390 10
+93.921881 241.635701 110.156013 256.733612 108.709496 225.906082
+76.985909 225.885071 78.414314 258.131134 image-20.jpg - 0
+113.352577 14 356.469479 260.279268 374.185577 276.701263
+373.424316 242.589371 338.584961 243.701157 339.138306 278.361816
+image-25.jpg 6 - - - - - - - - - - - - - image-25.jpg - 0
+104.335648 3 582.526272 172.855311 591.867737 182.788071
+591.744507 164.311249 572.900146 162.619873 571.673584 182.914291
+image-25.jpg - 0 98.022957 5 703.273382 271.582895 719.558838
+289.752594 722.151733 255.156494 687.378235 253.848663 684.847351
+287.615723 image-25.jpg - 0 97.193115 7 288.060779 227.126745
+301.596832 241.792313 303.156311 212.408813 273.927643 211.814270
+274.094910 240.743271 image-25.jpg - 0 95.469902 8 463.602927
+227.895852 477.407318 243.203674 478.615387 214.312836 450.184204
+213.015701 448.516754 241.545563 image-25.jpg - 0 98.262482 10
+93.841113 241.682854 110.217911 256.763306 108.755135 225.799042
+76.955551 226.133911 78.342644 258.189117 image-25.jpg - 0
+104.164268 14 356.452689 260.333124 374.091003 276.639069
+373.551086 242.770279 338.544189 243.777405 339.044830 278.213837
+image-30.jpg 6 - - - - - - - - - - - - - image-30.jpg - 0
+95.374634 3 582.501977 172.989544 591.924927 182.841492 592.060547
+164.185059 572.580872 162.616760 571.644287 182.990662
+image-30.jpg - 0 91.537254 5 703.303321 271.479994 719.498535
+289.681763 722.097778 255.171768 687.362793 253.564468 684.737061
+287.590210 image-30.jpg - 0 91.375900 7 288.246087 226.917722
+301.759216 241.682281 303.143890 212.775528 274.154541 211.521179
+273.792999 240.637756 image-30.jpg - 0 93.561913 8 463.650286
+228.004253 477.502258 243.191528 478.482697 214.481354 449.823456
+212.844543 448.779022 241.562576 image-30.jpg - 0 93.258263 10
+93.847161 241.586968 110.432304 256.804718 108.496826 225.938553
+76.887894 226.025940 78.425941 258.059540 image-30.jpg - 0
+93.091080 14 356.465512 260.065703 374.374695 276.615784
+373.186188 242.657562 338.772125 243.715042 338.958557 278.292450
+image-35.jpg 6 - - - - - - - - - - - - - image-35.jpg - 0
+81.925522 3 582.424420 172.951977 592.035706 182.755753 591.916199
+164.190948 572.666138 162.998260 571.573975 182.967072
+image-35.jpg - 0 75.238800 5 703.397631 271.510614 719.537476
+289.639771 722.098877 255.290466 687.403015 253.544586 684.826416
+287.617981 image-35.jpg - 0 76.286034 7 288.068763 227.001554
+301.768127 241.929855 303.107391 212.602173 274.029419 211.702774
+273.796326 240.667313 image-35.jpg - 0 75.554955 8 463.729167
+227.979582 477.382050 243.061859 478.648376 214.507813 450.075348
+212.896271 448.658325 241.588272 image-35.jpg - 0 82.714676 10
+93.806019 241.641933 110.250320 256.656097 108.780518 225.697556
+77.105728 226.394043 78.208862 258.249298 image-35.jpg - 0
+82.168640 14 356.670133 260.314619 374.048706 276.738953
+373.677734 243.021011 338.629639 243.264709 339.142181 278.137329
+image-40.jpg 6 - - - - - - - - - - - - - image-40.jpg - 0
+74.795692 3 582.341647 172.951027 591.837585 183.155731 592.057739
+164.131790 572.974792 162.885040 571.521912 182.772034
+image-40.jpg - 0 71.265434 5 703.318835 271.491706 719.642029
+289.909821 721.993958 255.312790 687.448792 253.584900 684.692322
+287.628510 image-40.jpg - 0 68.908607 7 288.134806 226.779044
+301.716553 241.643524 303.003479 212.381638 274.403351 211.750717
+273.701294 240.755081 image-40.jpg - 0 61.691715 8 463.534022
+227.842210 477.432739 243.159348 478.359863 214.350327 450.114685
+213.053375 448.506287 241.517822 image-40.jpg - 0 77.625397 10
+93.873280 241.623824 110.513222 256.672058 108.530014 226.064285
+77.033516 226.394882 78.226112 258.234802 image-40.jpg - 0
+73.437790 14 356.463973 260.278878 374.184784 276.776245
+373.534241 242.657455 338.538574 243.591049 339.160217 278.141327
+image-5.jpg 7 - - - - - - - - - - - - - image-5.jpg - 0 146.238892
+3 582.581842 173.022827 591.862793 182.837769 592.110779
+164.303558 572.888550 162.771820 571.704956 182.975510
+image-5.jpg - 0 130.926834 5 703.316733 271.513006 719.540344
+289.723969 722.108398 255.226425 687.392090 253.637634 684.838867
+287.527618 image-5.jpg - 0 144.299271 7 288.165935 226.949293
+301.684631 241.653244 303.145905 212.573822 274.172394 211.728867
+273.864258 240.673843 image-5.jpg - 0 132.030685 8 463.609509
+227.987100 477.383698 243.182129 478.637054 214.372070 450.011261
+212.986160 448.601654 241.584290 image-5.jpg - 1 93.211800 10
+122.010988 237.612926 116.735390 255.911591 126.933197 250.353958
+127.294868 219.285538 117.007805 224.662292 image-5.jpg - 0
+147.744156 10 93.943953 241.580348 110.304306 256.606415
+108.602013 225.927856 77.034477 226.049942 78.394371 258.184845
+image-5.jpg - 0 147.717911 14 356.447363 260.234741 374.159393
+276.730865 373.412231 242.704163 338.671570 243.679230 339.058167
+278.203796 image0.jpg 7 - - - - - - - - - - - - - image0.jpg - 0
+152.046204 3 582.519363 173.033192 591.861633 182.869690
+592.102722 164.273453 572.868591 162.871872 571.678711 182.942169
+image0.jpg - 0 137.730133 5 703.321189 271.506498 719.565247
+289.741455 722.132263 255.222824 687.414185 253.649902 684.806580
+287.533539 image0.jpg - 0 137.643906 7 288.195621 227.011527
+301.624725 241.717529 303.179321 212.669662 274.220184 211.707245
+273.876526 240.717255 image0.jpg - 0 147.959732 8 463.620918
+227.838993 477.517273 243.120804 478.381042 214.398315 450.132507
+213.005798 448.585907 241.529984 image0.jpg - 1 99.661888 10
+122.060121 238.170460 117.010849 256.043365 126.975830 250.311508
+127.432625 219.153412 116.722054 224.986252 image0.jpg - 0
+155.917755 10 93.870650 241.599170 110.244667 256.736389
+108.645515 225.793991 77.065552 226.063431 78.335129 258.218048
+image0.jpg - 0 155.337341 14 356.560603 260.296740 374.131195
+276.638489 373.440552 242.828842 338.751099 243.732788 339.169281
+278.293823 image10.jpg 7 - - - - - - - - - - - - - image10.jpg - 0
+175.721802 3 582.490331 173.017079 591.779419 182.918350
+592.171021 164.148972 572.967651 162.866821 571.704712 182.897369
+image10.jpg - 0 158.279556 5 703.343955 271.498776 719.575073
+289.678345 722.105164 255.089188 687.394409 253.634583 684.866699
+287.660004 image10.jpg - 0 167.794479 7 288.231886 226.965028
+301.741760 241.690445 303.171539 212.650345 274.156708 211.623444
+273.915253 240.682755 image10.jpg - 0 168.151886 8 463.638522
+227.911007 477.483978 243.159195 478.564240 214.365463 450.079803
+212.978607 448.627838 241.533661 image10.jpg - 0 171.818054 10
+93.926200 241.552944 110.299309 256.630188 108.640846 225.921890
+77.023811 225.988312 78.339165 258.110718 image10.jpg - 1
+112.581711 10 121.976516 237.557809 116.783173 256.147583
+127.108536 250.258301 127.065208 219.342636 116.836899 224.838516
+image10.jpg - 0 182.821091 14 356.548748 260.285709 374.113953
+276.648285 373.427460 242.750793 338.674408 243.635162 339.212372
+278.296082 image15.jpg 7 - - - - - - - - - - - - - image15.jpg - 0
+167.957428 3 582.509230 172.951137 591.895203 182.904465
+591.866028 164.171371 572.961304 162.826065 571.880859 182.924057
+image15.jpg - 0 159.378632 5 703.365615 271.555547 719.533630
+289.598602 722.238892 255.163025 687.398804 253.737030 684.793396
+287.686584 image15.jpg - 0 161.780823 7 288.236865 226.882460
+301.719025 241.696518 303.163391 212.686295 274.431976 211.713791
+273.726257 240.683060 image15.jpg - 0 161.562607 8 463.658827
+227.915890 477.559265 243.181870 478.517700 214.405685 450.083679
+213.007156 448.606720 241.601791 image15.jpg - 1 122.935966 10
+121.943891 237.496870 116.730835 256.094025 127.121193 250.291702
+127.026627 219.364624 116.806755 224.801300 image15.jpg - 0
+159.466690 10 93.891194 241.603576 110.321274 256.625061
+108.637001 225.881729 77.026535 226.184769 78.422783 258.095856
+image15.jpg - 0 174.717819 14 356.440053 260.143360 374.236023
+276.702148 373.289948 242.703842 338.692352 243.629486 338.974487
+278.220093 image20.jpg 7 - - - - - - - - - - - - - image20.jpg - 0
+170.566071 3 582.546184 172.984338 591.835266 182.885056
+591.941345 164.277161 573.019653 162.830536 571.750610 182.989380
+image20.jpg - 0 157.554382 5 703.380983 271.462281 719.601624
+289.504761 722.079346 255.153061 687.378540 253.662506 684.840820
+287.633514 image20.jpg - 0 148.164841 7 288.221572 226.888636
+301.730774 241.643265 303.158844 212.554276 274.346527 211.734436
+273.757538 240.768860 image20.jpg - 0 152.385071 8 463.603803
+227.924714 477.361694 243.103333 478.652740 214.313797 450.088623
+213.013870 448.543549 241.545868 image20.jpg - 0 157.655396 10
+93.806114 241.555816 110.330559 256.587433 108.625015 225.725784
+77.090378 226.350189 78.339211 258.078064 image20.jpg - 1
+122.149773 10 121.910546 238.040866 116.833344 255.858124
+126.919151 250.553116 127.276955 219.208710 116.681580 224.978119
+image20.jpg - 0 176.182709 14 356.391787 260.091792 374.186127
+276.631439 373.220428 242.611343 338.830109 243.768402 338.930695
+278.229187 image25.jpg 7 - - - - - - - - - - - - - image25.jpg - 0
+156.569031 3 582.555855 172.964075 591.881836 182.886383
+591.908020 164.275742 573.162048 162.969604 571.812561 182.944794
+image25.jpg - 0 149.783554 5 703.370325 271.485056 719.571106
+289.579956 722.005371 255.198441 687.405640 253.653854 684.875061
+287.649506 image25.jpg - 0 138.127594 7 288.361469 226.776104
+301.760620 241.530075 303.033844 212.779861 274.597717 211.620667
+273.665253 240.795090 image25.jpg - 0 145.040298 8 463.590099
+227.854750 477.438965 243.120590 478.592957 214.287933 450.128937
+213.016281 448.546387 241.458511 image25.jpg - 0 146.684967 10
+93.806771 241.653028 110.195465 256.574799 108.705811 225.812683
+77.000519 226.351074 78.452278 257.977600 image25.jpg - 1
+116.530792 10 122.027877 238.087012 116.779823 255.890152
+126.909157 250.476608 127.586792 219.229324 116.810875 224.845291
+image25.jpg - 0 168.714798 14 356.435486 260.075024 374.362427
+276.672455 373.109222 242.620758 338.802032 243.749313 339.157288
+278.162048 image30.jpg 7 - - - - - - - - - - - - - image30.jpg - 0
+148.999191 3 582.581100 172.947478 591.957214 182.952179
+591.853882 164.375839 573.162231 162.897156 571.879395 182.839996
+image30.jpg - 0 134.839859 5 703.385162 271.425324 719.641113
+289.546783 722.001526 255.144775 687.430237 253.639435 684.815735
+287.664825 image30.jpg - 0 132.647964 7 288.328057 226.668981
+301.694946 241.536774 303.040375 212.699677 274.801819 211.623947
+273.437866 240.807175 image30.jpg - 0 138.254410 8 463.529916
+227.848052 477.454071 243.149216 478.495239 214.328369 450.063293
+213.049667 448.536469 241.393143 image30.jpg - 0 135.838211 10
+93.779785 241.541987 110.278488 256.579834 108.715004 225.731537
+77.190239 226.421341 78.328300 257.898956 image30.jpg - 1
+104.018181 10 121.978985 237.261604 116.780342 255.958664
+127.258064 250.105988 126.930664 219.452759 116.879570 224.854355
+image30.jpg - 0 162.389801 14 356.332425 260.038280 374.267059
+276.619476 373.120758 242.545563 338.821777 243.849075 338.965485
+278.133881 image35.jpg 6 - - - - - - - - - - - - - image35.jpg - 0
+143.577362 3 582.600484 172.970921 591.871887 182.975571
+591.901184 164.392624 573.244202 162.874680 571.833435 182.901672
+image35.jpg - 0 132.913101 5 703.354418 271.446508 719.579712
+289.532715 722.019775 255.178665 687.430542 253.696289 684.825195
+287.595703 image35.jpg - 0 111.070091 7 288.361074 226.702227
+301.673553 241.470291 303.000641 212.758560 274.801788 211.660370
+273.559723 240.799988 image35.jpg - 0 127.737274 8 463.503393
+227.800829 477.408844 243.124283 478.443115 214.264877 450.153595
+213.089691 448.510895 241.384598 image35.jpg - 0 130.645859 10
+93.731565 241.597933 110.253548 256.516602 108.655945 225.578430
+77.092133 226.573212 78.464676 257.985077 image35.jpg - 0
+151.636505 14 356.323759 260.149991 374.061615 276.654358
+373.041077 242.599030 338.820221 243.863647 339.112976 278.219025
+image40.jpg 6 - - - - - - - - - - - - - image40.jpg - 0 136.289703
+3 582.558174 173.086671 591.866516 183.162384 592.072815
+164.372025 573.329590 163.097290 571.919434 182.830902
+image40.jpg - 0 118.706474 5 703.370626 271.440331 719.597351
+289.528534 722.069885 255.157288 687.408142 253.646683 684.924805
+287.502686 image40.jpg - 0 104.010826 7 288.453467 226.625569
+301.623322 241.275070 303.012390 212.798691 274.992462 211.652206
+273.384918 240.936447 image40.jpg - 0 116.560539 8 463.612217
+227.854467 477.438110 243.070892 478.463898 214.325760 450.166351
+213.056290 448.613708 241.516922 image40.jpg - 0 114.659264 10
+93.623283 241.564606 110.165688 256.693634 108.681740 225.542252
+77.223244 226.565781 78.488289 257.668396 image40.jpg - 0
+139.278503 14 356.398684 259.988609 374.230560 276.631653
+372.945068 242.714706 339.058807 243.804764 339.001495 278.150726
+image5.jpg 7 - - - - - - - - - - - - - image5.jpg - 0 162.240234 3
+582.368414 172.974550 591.744507 182.823959 591.876160 164.065033
+572.796631 162.919571 571.699768 182.971924 image5.jpg - 0
+150.063400 5 703.354047 271.475288 719.536255 289.653900
+722.035400 255.210068 687.447998 253.606903 684.775146 287.651306
+image5.jpg - 0 161.968475 7 288.198273 226.976219 301.650482
+241.698074 303.180023 212.598557 274.209167 211.666794 273.837860
+240.757599 image5.jpg - 0 156.497696 8 463.647128 227.953977
+477.486053 243.175110 478.532440 214.446274 450.056244 213.005661
+448.613586 241.596191 image5.jpg - 0 172.235916 10 93.911328
+241.621363 110.236282 256.737793 108.719185 225.908813 77.150673
+226.101486 78.310966 258.174835 image5.jpg - 1 103.423279 10
+122.002295 237.681535 116.768059 256.101654 126.945274 250.327789
+127.198502 219.395248 116.962845 224.788467 image5.jpg - 0
+168.502563 14 356.548485 260.258082 374.107086 276.708954
+373.353363 242.794128 338.602478 243.444244 339.178833 278.308960
 #+end_example
 
-Cool! I now have two logs, one containing apriltag detections, and another the
-contrast info. Let's join them:
+Cool! I now have two logs, one containing apriltag detections, and
+another the contrast info. Let's join them:
 
 #+BEGIN_SRC shell :results output verbatim
-vnl-join -j path images.vnl contrast.vnl | tee joint.vnl
-#+END_SRC
+vnl-join -j path images.vnl contrast.vnl | tee joint.vnl #+END_SRC
 
 #+RESULTS:
 #+begin_example
 # path Ndetections hamming margin id xc yc xlb ylb xrb yrb xrt yrt xlt ylt contrast
-image-10.jpg 7 - - - - - - - - - - - - - -10
-image-10.jpg - 0 133.228790 3 582.427479 172.936536 591.850769 182.842194 591.838501 164.225586 572.823181 162.840607 571.616455 182.943344 -10
-image-10.jpg - 0 118.189064 5 703.348698 271.582973 719.518005 289.604218 722.225098 255.228485 687.284119 253.678452 684.806030 287.648315 -10
-image-10.jpg - 0 129.060806 7 288.166344 226.822277 301.674896 241.709244 303.065674 212.641235 274.475433 211.734344 273.701416 240.589859 -10
-image-10.jpg - 0 123.397102 8 463.631410 227.988129 477.481323 243.204834 478.576904 214.390076 450.013763 213.026611 448.608704 241.656433 -10
-image-10.jpg - 0 129.203400 10 93.840148 241.733127 110.223991 256.762543 108.734070 225.777008 76.841858 226.140060 78.474304 258.194824 -10
-image-10.jpg - 1 84.740097 10 122.046326 237.967775 116.819801 256.152130 126.952614 250.317734 127.483841 219.049332 116.846260 224.878326 -10
-image-10.jpg - 0 138.365524 14 356.483924 260.289075 374.122284 276.698975 373.411011 242.703537 338.622467 243.671616 339.278168 278.164124 -10
-image-15.jpg 6 - - - - - - - - - - - - - -15
-image-15.jpg - 0 119.090736 3 582.479922 172.904344 591.818481 182.805328 591.854919 164.191101 572.918213 162.766769 571.673340 182.948120 -15
-image-15.jpg - 0 104.502808 5 703.303741 271.573825 719.463257 289.667725 722.127625 255.229462 687.334351 253.692810 684.836853 287.608215 -15
-image-15.jpg - 0 123.752258 7 288.173350 226.972440 301.650116 241.718216 303.114655 212.617386 274.180573 211.662064 273.833252 240.749878 -15
-image-15.jpg - 0 117.788940 8 463.624143 227.972192 477.328552 243.134048 478.583252 214.458542 450.151825 213.067108 448.602997 241.541885 -15
-image-15.jpg - 0 119.841087 10 93.913351 241.711663 110.141037 256.623718 108.668335 225.953796 76.862602 226.043274 78.400108 258.279327 -15
-image-15.jpg - 0 128.748459 14 356.448505 260.209195 374.105316 276.768463 373.324860 242.792709 338.765228 243.625107 339.132111 278.079803 -15
-image-20.jpg 6 - - - - - - - - - - - - - -20
-image-20.jpg - 0 109.074486 3 582.415676 172.876204 591.806091 182.941132 591.780701 164.218140 572.846741 162.619934 571.642761 182.835876 -20
-image-20.jpg - 0 106.336151 5 703.371569 271.547979 719.665710 289.771118 722.044189 255.275558 687.349976 253.629654 684.904541 287.641235 -20
-image-20.jpg - 0 105.022606 7 288.180316 226.993460 301.656830 241.697708 303.133911 212.686707 274.134949 211.668533 273.791779 240.759598 -20
-image-20.jpg - 0 109.120575 8 463.618107 227.984229 477.453400 243.188705 478.614136 214.371277 450.018982 213.039291 448.602478 241.614975 -20
-image-20.jpg - 0 117.623390 10 93.921881 241.635701 110.156013 256.733612 108.709496 225.906082 76.985909 225.885071 78.414314 258.131134 -20
-image-20.jpg - 0 113.352577 14 356.469479 260.279268 374.185577 276.701263 373.424316 242.589371 338.584961 243.701157 339.138306 278.361816 -20
-image-25.jpg 6 - - - - - - - - - - - - - -25
-image-25.jpg - 0 104.335648 3 582.526272 172.855311 591.867737 182.788071 591.744507 164.311249 572.900146 162.619873 571.673584 182.914291 -25
-image-25.jpg - 0 98.022957 5 703.273382 271.582895 719.558838 289.752594 722.151733 255.156494 687.378235 253.848663 684.847351 287.615723 -25
-image-25.jpg - 0 97.193115 7 288.060779 227.126745 301.596832 241.792313 303.156311 212.408813 273.927643 211.814270 274.094910 240.743271 -25
-image-25.jpg - 0 95.469902 8 463.602927 227.895852 477.407318 243.203674 478.615387 214.312836 450.184204 213.015701 448.516754 241.545563 -25
-image-25.jpg - 0 98.262482 10 93.841113 241.682854 110.217911 256.763306 108.755135 225.799042 76.955551 226.133911 78.342644 258.189117 -25
-image-25.jpg - 0 104.164268 14 356.452689 260.333124 374.091003 276.639069 373.551086 242.770279 338.544189 243.777405 339.044830 278.213837 -25
-image-30.jpg 6 - - - - - - - - - - - - - -30
-image-30.jpg - 0 95.374634 3 582.501977 172.989544 591.924927 182.841492 592.060547 164.185059 572.580872 162.616760 571.644287 182.990662 -30
-image-30.jpg - 0 91.537254 5 703.303321 271.479994 719.498535 289.681763 722.097778 255.171768 687.362793 253.564468 684.737061 287.590210 -30
-image-30.jpg - 0 91.375900 7 288.246087 226.917722 301.759216 241.682281 303.143890 212.775528 274.154541 211.521179 273.792999 240.637756 -30
-image-30.jpg - 0 93.561913 8 463.650286 228.004253 477.502258 243.191528 478.482697 214.481354 449.823456 212.844543 448.779022 241.562576 -30
-image-30.jpg - 0 93.258263 10 93.847161 241.586968 110.432304 256.804718 108.496826 225.938553 76.887894 226.025940 78.425941 258.059540 -30
-image-30.jpg - 0 93.091080 14 356.465512 260.065703 374.374695 276.615784 373.186188 242.657562 338.772125 243.715042 338.958557 278.292450 -30
-image-35.jpg 6 - - - - - - - - - - - - - -35
-image-35.jpg - 0 81.925522 3 582.424420 172.951977 592.035706 182.755753 591.916199 164.190948 572.666138 162.998260 571.573975 182.967072 -35
-image-35.jpg - 0 75.238800 5 703.397631 271.510614 719.537476 289.639771 722.098877 255.290466 687.403015 253.544586 684.826416 287.617981 -35
-image-35.jpg - 0 76.286034 7 288.068763 227.001554 301.768127 241.929855 303.107391 212.602173 274.029419 211.702774 273.796326 240.667313 -35
-image-35.jpg - 0 75.554955 8 463.729167 227.979582 477.382050 243.061859 478.648376 214.507813 450.075348 212.896271 448.658325 241.588272 -35
-image-35.jpg - 0 82.714676 10 93.806019 241.641933 110.250320 256.656097 108.780518 225.697556 77.105728 226.394043 78.208862 258.249298 -35
-image-35.jpg - 0 82.168640 14 356.670133 260.314619 374.048706 276.738953 373.677734 243.021011 338.629639 243.264709 339.142181 278.137329 -35
-image-40.jpg 6 - - - - - - - - - - - - - -40
-image-40.jpg - 0 74.795692 3 582.341647 172.951027 591.837585 183.155731 592.057739 164.131790 572.974792 162.885040 571.521912 182.772034 -40
-image-40.jpg - 0 71.265434 5 703.318835 271.491706 719.642029 289.909821 721.993958 255.312790 687.448792 253.584900 684.692322 287.628510 -40
-image-40.jpg - 0 68.908607 7 288.134806 226.779044 301.716553 241.643524 303.003479 212.381638 274.403351 211.750717 273.701294 240.755081 -40
-image-40.jpg - 0 61.691715 8 463.534022 227.842210 477.432739 243.159348 478.359863 214.350327 450.114685 213.053375 448.506287 241.517822 -40
-image-40.jpg - 0 77.625397 10 93.873280 241.623824 110.513222 256.672058 108.530014 226.064285 77.033516 226.394882 78.226112 258.234802 -40
-image-40.jpg - 0 73.437790 14 356.463973 260.278878 374.184784 276.776245 373.534241 242.657455 338.538574 243.591049 339.160217 278.141327 -40
-image-5.jpg 7 - - - - - - - - - - - - - -5
-image-5.jpg - 0 146.238892 3 582.581842 173.022827 591.862793 182.837769 592.110779 164.303558 572.888550 162.771820 571.704956 182.975510 -5
-image-5.jpg - 0 130.926834 5 703.316733 271.513006 719.540344 289.723969 722.108398 255.226425 687.392090 253.637634 684.838867 287.527618 -5
-image-5.jpg - 0 144.299271 7 288.165935 226.949293 301.684631 241.653244 303.145905 212.573822 274.172394 211.728867 273.864258 240.673843 -5
-image-5.jpg - 0 132.030685 8 463.609509 227.987100 477.383698 243.182129 478.637054 214.372070 450.011261 212.986160 448.601654 241.584290 -5
-image-5.jpg - 1 93.211800 10 122.010988 237.612926 116.735390 255.911591 126.933197 250.353958 127.294868 219.285538 117.007805 224.662292 -5
-image-5.jpg - 0 147.744156 10 93.943953 241.580348 110.304306 256.606415 108.602013 225.927856 77.034477 226.049942 78.394371 258.184845 -5
-image-5.jpg - 0 147.717911 14 356.447363 260.234741 374.159393 276.730865 373.412231 242.704163 338.671570 243.679230 339.058167 278.203796 -5
-image0.jpg 7 - - - - - - - - - - - - - 0
-image0.jpg - 0 152.046204 3 582.519363 173.033192 591.861633 182.869690 592.102722 164.273453 572.868591 162.871872 571.678711 182.942169 0
-image0.jpg - 0 137.730133 5 703.321189 271.506498 719.565247 289.741455 722.132263 255.222824 687.414185 253.649902 684.806580 287.533539 0
-image0.jpg - 0 137.643906 7 288.195621 227.011527 301.624725 241.717529 303.179321 212.669662 274.220184 211.707245 273.876526 240.717255 0
-image0.jpg - 0 147.959732 8 463.620918 227.838993 477.517273 243.120804 478.381042 214.398315 450.132507 213.005798 448.585907 241.529984 0
-image0.jpg - 1 99.661888 10 122.060121 238.170460 117.010849 256.043365 126.975830 250.311508 127.432625 219.153412 116.722054 224.986252 0
-image0.jpg - 0 155.917755 10 93.870650 241.599170 110.244667 256.736389 108.645515 225.793991 77.065552 226.063431 78.335129 258.218048 0
-image0.jpg - 0 155.337341 14 356.560603 260.296740 374.131195 276.638489 373.440552 242.828842 338.751099 243.732788 339.169281 278.293823 0
-image10.jpg 7 - - - - - - - - - - - - - 10
-image10.jpg - 0 175.721802 3 582.490331 173.017079 591.779419 182.918350 592.171021 164.148972 572.967651 162.866821 571.704712 182.897369 10
-image10.jpg - 0 158.279556 5 703.343955 271.498776 719.575073 289.678345 722.105164 255.089188 687.394409 253.634583 684.866699 287.660004 10
-image10.jpg - 0 167.794479 7 288.231886 226.965028 301.741760 241.690445 303.171539 212.650345 274.156708 211.623444 273.915253 240.682755 10
-image10.jpg - 0 168.151886 8 463.638522 227.911007 477.483978 243.159195 478.564240 214.365463 450.079803 212.978607 448.627838 241.533661 10
-image10.jpg - 0 171.818054 10 93.926200 241.552944 110.299309 256.630188 108.640846 225.921890 77.023811 225.988312 78.339165 258.110718 10
-image10.jpg - 1 112.581711 10 121.976516 237.557809 116.783173 256.147583 127.108536 250.258301 127.065208 219.342636 116.836899 224.838516 10
-image10.jpg - 0 182.821091 14 356.548748 260.285709 374.113953 276.648285 373.427460 242.750793 338.674408 243.635162 339.212372 278.296082 10
-image15.jpg 7 - - - - - - - - - - - - - 15
-image15.jpg - 0 167.957428 3 582.509230 172.951137 591.895203 182.904465 591.866028 164.171371 572.961304 162.826065 571.880859 182.924057 15
-image15.jpg - 0 159.378632 5 703.365615 271.555547 719.533630 289.598602 722.238892 255.163025 687.398804 253.737030 684.793396 287.686584 15
-image15.jpg - 0 161.780823 7 288.236865 226.882460 301.719025 241.696518 303.163391 212.686295 274.431976 211.713791 273.726257 240.683060 15
-image15.jpg - 0 161.562607 8 463.658827 227.915890 477.559265 243.181870 478.517700 214.405685 450.083679 213.007156 448.606720 241.601791 15
-image15.jpg - 1 122.935966 10 121.943891 237.496870 116.730835 256.094025 127.121193 250.291702 127.026627 219.364624 116.806755 224.801300 15
-image15.jpg - 0 159.466690 10 93.891194 241.603576 110.321274 256.625061 108.637001 225.881729 77.026535 226.184769 78.422783 258.095856 15
-image15.jpg - 0 174.717819 14 356.440053 260.143360 374.236023 276.702148 373.289948 242.703842 338.692352 243.629486 338.974487 278.220093 15
-image20.jpg 7 - - - - - - - - - - - - - 20
-image20.jpg - 0 170.566071 3 582.546184 172.984338 591.835266 182.885056 591.941345 164.277161 573.019653 162.830536 571.750610 182.989380 20
-image20.jpg - 0 157.554382 5 703.380983 271.462281 719.601624 289.504761 722.079346 255.153061 687.378540 253.662506 684.840820 287.633514 20
-image20.jpg - 0 148.164841 7 288.221572 226.888636 301.730774 241.643265 303.158844 212.554276 274.346527 211.734436 273.757538 240.768860 20
-image20.jpg - 0 152.385071 8 463.603803 227.924714 477.361694 243.103333 478.652740 214.313797 450.088623 213.013870 448.543549 241.545868 20
-image20.jpg - 0 157.655396 10 93.806114 241.555816 110.330559 256.587433 108.625015 225.725784 77.090378 226.350189 78.339211 258.078064 20
-image20.jpg - 1 122.149773 10 121.910546 238.040866 116.833344 255.858124 126.919151 250.553116 127.276955 219.208710 116.681580 224.978119 20
-image20.jpg - 0 176.182709 14 356.391787 260.091792 374.186127 276.631439 373.220428 242.611343 338.830109 243.768402 338.930695 278.229187 20
-image25.jpg 7 - - - - - - - - - - - - - 25
-image25.jpg - 0 156.569031 3 582.555855 172.964075 591.881836 182.886383 591.908020 164.275742 573.162048 162.969604 571.812561 182.944794 25
-image25.jpg - 0 149.783554 5 703.370325 271.485056 719.571106 289.579956 722.005371 255.198441 687.405640 253.653854 684.875061 287.649506 25
-image25.jpg - 0 138.127594 7 288.361469 226.776104 301.760620 241.530075 303.033844 212.779861 274.597717 211.620667 273.665253 240.795090 25
-image25.jpg - 0 145.040298 8 463.590099 227.854750 477.438965 243.120590 478.592957 214.287933 450.128937 213.016281 448.546387 241.458511 25
-image25.jpg - 0 146.684967 10 93.806771 241.653028 110.195465 256.574799 108.705811 225.812683 77.000519 226.351074 78.452278 257.977600 25
-image25.jpg - 1 116.530792 10 122.027877 238.087012 116.779823 255.890152 126.909157 250.476608 127.586792 219.229324 116.810875 224.845291 25
-image25.jpg - 0 168.714798 14 356.435486 260.075024 374.362427 276.672455 373.109222 242.620758 338.802032 243.749313 339.157288 278.162048 25
-image30.jpg 7 - - - - - - - - - - - - - 30
-image30.jpg - 0 148.999191 3 582.581100 172.947478 591.957214 182.952179 591.853882 164.375839 573.162231 162.897156 571.879395 182.839996 30
-image30.jpg - 0 134.839859 5 703.385162 271.425324 719.641113 289.546783 722.001526 255.144775 687.430237 253.639435 684.815735 287.664825 30
-image30.jpg - 0 132.647964 7 288.328057 226.668981 301.694946 241.536774 303.040375 212.699677 274.801819 211.623947 273.437866 240.807175 30
-image30.jpg - 0 138.254410 8 463.529916 227.848052 477.454071 243.149216 478.495239 214.328369 450.063293 213.049667 448.536469 241.393143 30
-image30.jpg - 0 135.838211 10 93.779785 241.541987 110.278488 256.579834 108.715004 225.731537 77.190239 226.421341 78.328300 257.898956 30
-image30.jpg - 1 104.018181 10 121.978985 237.261604 116.780342 255.958664 127.258064 250.105988 126.930664 219.452759 116.879570 224.854355 30
-image30.jpg - 0 162.389801 14 356.332425 260.038280 374.267059 276.619476 373.120758 242.545563 338.821777 243.849075 338.965485 278.133881 30
-image35.jpg 6 - - - - - - - - - - - - - 35
-image35.jpg - 0 143.577362 3 582.600484 172.970921 591.871887 182.975571 591.901184 164.392624 573.244202 162.874680 571.833435 182.901672 35
-image35.jpg - 0 132.913101 5 703.354418 271.446508 719.579712 289.532715 722.019775 255.178665 687.430542 253.696289 684.825195 287.595703 35
-image35.jpg - 0 111.070091 7 288.361074 226.702227 301.673553 241.470291 303.000641 212.758560 274.801788 211.660370 273.559723 240.799988 35
-image35.jpg - 0 127.737274 8 463.503393 227.800829 477.408844 243.124283 478.443115 214.264877 450.153595 213.089691 448.510895 241.384598 35
-image35.jpg - 0 130.645859 10 93.731565 241.597933 110.253548 256.516602 108.655945 225.578430 77.092133 226.573212 78.464676 257.985077 35
-image35.jpg - 0 151.636505 14 356.323759 260.149991 374.061615 276.654358 373.041077 242.599030 338.820221 243.863647 339.112976 278.219025 35
-image40.jpg 6 - - - - - - - - - - - - - 40
-image40.jpg - 0 136.289703 3 582.558174 173.086671 591.866516 183.162384 592.072815 164.372025 573.329590 163.097290 571.919434 182.830902 40
-image40.jpg - 0 118.706474 5 703.370626 271.440331 719.597351 289.528534 722.069885 255.157288 687.408142 253.646683 684.924805 287.502686 40
-image40.jpg - 0 104.010826 7 288.453467 226.625569 301.623322 241.275070 303.012390 212.798691 274.992462 211.652206 273.384918 240.936447 40
-image40.jpg - 0 116.560539 8 463.612217 227.854467 477.438110 243.070892 478.463898 214.325760 450.166351 213.056290 448.613708 241.516922 40
-image40.jpg - 0 114.659264 10 93.623283 241.564606 110.165688 256.693634 108.681740 225.542252 77.223244 226.565781 78.488289 257.668396 40
-image40.jpg - 0 139.278503 14 356.398684 259.988609 374.230560 276.631653 372.945068 242.714706 339.058807 243.804764 339.001495 278.150726 40
-image5.jpg 7 - - - - - - - - - - - - - 5
-image5.jpg - 0 162.240234 3 582.368414 172.974550 591.744507 182.823959 591.876160 164.065033 572.796631 162.919571 571.699768 182.971924 5
-image5.jpg - 0 150.063400 5 703.354047 271.475288 719.536255 289.653900 722.035400 255.210068 687.447998 253.606903 684.775146 287.651306 5
-image5.jpg - 0 161.968475 7 288.198273 226.976219 301.650482 241.698074 303.180023 212.598557 274.209167 211.666794 273.837860 240.757599 5
-image5.jpg - 0 156.497696 8 463.647128 227.953977 477.486053 243.175110 478.532440 214.446274 450.056244 213.005661 448.613586 241.596191 5
-image5.jpg - 0 172.235916 10 93.911328 241.621363 110.236282 256.737793 108.719185 225.908813 77.150673 226.101486 78.310966 258.174835 5
-image5.jpg - 1 103.423279 10 122.002295 237.681535 116.768059 256.101654 126.945274 250.327789 127.198502 219.395248 116.962845 224.788467 5
-image5.jpg - 0 168.502563 14 356.548485 260.258082 374.107086 276.708954 373.353363 242.794128 338.602478 243.444244 339.178833 278.308960 5
-#+end_example
+image-10.jpg 7 - - - - - - - - - - - - - -10 image-10.jpg - 0
+133.228790 3 582.427479 172.936536 591.850769 182.842194
+591.838501 164.225586 572.823181 162.840607 571.616455 182.943344
+-10 image-10.jpg - 0 118.189064 5 703.348698 271.582973 719.518005
+289.604218 722.225098 255.228485 687.284119 253.678452 684.806030
+287.648315 -10 image-10.jpg - 0 129.060806 7 288.166344 226.822277
+301.674896 241.709244 303.065674 212.641235 274.475433 211.734344
+273.701416 240.589859 -10 image-10.jpg - 0 123.397102 8 463.631410
+227.988129 477.481323 243.204834 478.576904 214.390076 450.013763
+213.026611 448.608704 241.656433 -10 image-10.jpg - 0 129.203400
+10 93.840148 241.733127 110.223991 256.762543 108.734070
+225.777008 76.841858 226.140060 78.474304 258.194824 -10
+image-10.jpg - 1 84.740097 10 122.046326 237.967775 116.819801
+256.152130 126.952614 250.317734 127.483841 219.049332 116.846260
+224.878326 -10 image-10.jpg - 0 138.365524 14 356.483924
+260.289075 374.122284 276.698975 373.411011 242.703537 338.622467
+243.671616 339.278168 278.164124 -10 image-15.jpg
+6 - - - - - - - - - - - - - -15 image-15.jpg - 0 119.090736 3
+582.479922 172.904344 591.818481 182.805328 591.854919 164.191101
+572.918213 162.766769 571.673340 182.948120 -15 image-15.jpg - 0
+104.502808 5 703.303741 271.573825 719.463257 289.667725
+722.127625 255.229462 687.334351 253.692810 684.836853 287.608215
+-15 image-15.jpg - 0 123.752258 7 288.173350 226.972440 301.650116
+241.718216 303.114655 212.617386 274.180573 211.662064 273.833252
+240.749878 -15 image-15.jpg - 0 117.788940 8 463.624143 227.972192
+477.328552 243.134048 478.583252 214.458542 450.151825 213.067108
+448.602997 241.541885 -15 image-15.jpg - 0 119.841087 10 93.913351
+241.711663 110.141037 256.623718 108.668335 225.953796 76.862602
+226.043274 78.400108 258.279327 -15 image-15.jpg - 0 128.748459 14
+356.448505 260.209195 374.105316 276.768463 373.324860 242.792709
+338.765228 243.625107 339.132111 278.079803 -15 image-20.jpg
+6 - - - - - - - - - - - - - -20 image-20.jpg - 0 109.074486 3
+582.415676 172.876204 591.806091 182.941132 591.780701 164.218140
+572.846741 162.619934 571.642761 182.835876 -20 image-20.jpg - 0
+106.336151 5 703.371569 271.547979 719.665710 289.771118
+722.044189 255.275558 687.349976 253.629654 684.904541 287.641235
+-20 image-20.jpg - 0 105.022606 7 288.180316 226.993460 301.656830
+241.697708 303.133911 212.686707 274.134949 211.668533 273.791779
+240.759598 -20 image-20.jpg - 0 109.120575 8 463.618107 227.984229
+477.453400 243.188705 478.614136 214.371277 450.018982 213.039291
+448.602478 241.614975 -20 image-20.jpg - 0 117.623390 10 93.921881
+241.635701 110.156013 256.733612 108.709496 225.906082 76.985909
+225.885071 78.414314 258.131134 -20 image-20.jpg - 0 113.352577 14
+356.469479 260.279268 374.185577 276.701263 373.424316 242.589371
+338.584961 243.701157 339.138306 278.361816 -20 image-25.jpg
+6 - - - - - - - - - - - - - -25 image-25.jpg - 0 104.335648 3
+582.526272 172.855311 591.867737 182.788071 591.744507 164.311249
+572.900146 162.619873 571.673584 182.914291 -25 image-25.jpg - 0
+98.022957 5 703.273382 271.582895 719.558838 289.752594 722.151733
+255.156494 687.378235 253.848663 684.847351 287.615723 -25
+image-25.jpg - 0 97.193115 7 288.060779 227.126745 301.596832
+241.792313 303.156311 212.408813 273.927643 211.814270 274.094910
+240.743271 -25 image-25.jpg - 0 95.469902 8 463.602927 227.895852
+477.407318 243.203674 478.615387 214.312836 450.184204 213.015701
+448.516754 241.545563 -25 image-25.jpg - 0 98.262482 10 93.841113
+241.682854 110.217911 256.763306 108.755135 225.799042 76.955551
+226.133911 78.342644 258.189117 -25 image-25.jpg - 0 104.164268 14
+356.452689 260.333124 374.091003 276.639069 373.551086 242.770279
+338.544189 243.777405 339.044830 278.213837 -25 image-30.jpg
+6 - - - - - - - - - - - - - -30 image-30.jpg - 0 95.374634 3
+582.501977 172.989544 591.924927 182.841492 592.060547 164.185059
+572.580872 162.616760 571.644287 182.990662 -30 image-30.jpg - 0
+91.537254 5 703.303321 271.479994 719.498535 289.681763 722.097778
+255.171768 687.362793 253.564468 684.737061 287.590210 -30
+image-30.jpg - 0 91.375900 7 288.246087 226.917722 301.759216
+241.682281 303.143890 212.775528 274.154541 211.521179 273.792999
+240.637756 -30 image-30.jpg - 0 93.561913 8 463.650286 228.004253
+477.502258 243.191528 478.482697 214.481354 449.823456 212.844543
+448.779022 241.562576 -30 image-30.jpg - 0 93.258263 10 93.847161
+241.586968 110.432304 256.804718 108.496826 225.938553 76.887894
+226.025940 78.425941 258.059540 -30 image-30.jpg - 0 93.091080 14
+356.465512 260.065703 374.374695 276.615784 373.186188 242.657562
+338.772125 243.715042 338.958557 278.292450 -30 image-35.jpg
+6 - - - - - - - - - - - - - -35 image-35.jpg - 0 81.925522 3
+582.424420 172.951977 592.035706 182.755753 591.916199 164.190948
+572.666138 162.998260 571.573975 182.967072 -35 image-35.jpg - 0
+75.238800 5 703.397631 271.510614 719.537476 289.639771 722.098877
+255.290466 687.403015 253.544586 684.826416 287.617981 -35
+image-35.jpg - 0 76.286034 7 288.068763 227.001554 301.768127
+241.929855 303.107391 212.602173 274.029419 211.702774 273.796326
+240.667313 -35 image-35.jpg - 0 75.554955 8 463.729167 227.979582
+477.382050 243.061859 478.648376 214.507813 450.075348 212.896271
+448.658325 241.588272 -35 image-35.jpg - 0 82.714676 10 93.806019
+241.641933 110.250320 256.656097 108.780518 225.697556 77.105728
+226.394043 78.208862 258.249298 -35 image-35.jpg - 0 82.168640 14
+356.670133 260.314619 374.048706 276.738953 373.677734 243.021011
+338.629639 243.264709 339.142181 278.137329 -35 image-40.jpg
+6 - - - - - - - - - - - - - -40 image-40.jpg - 0 74.795692 3
+582.341647 172.951027 591.837585 183.155731 592.057739 164.131790
+572.974792 162.885040 571.521912 182.772034 -40 image-40.jpg - 0
+71.265434 5 703.318835 271.491706 719.642029 289.909821 721.993958
+255.312790 687.448792 253.584900 684.692322 287.628510 -40
+image-40.jpg - 0 68.908607 7 288.134806 226.779044 301.716553
+241.643524 303.003479 212.381638 274.403351 211.750717 273.701294
+240.755081 -40 image-40.jpg - 0 61.691715 8 463.534022 227.842210
+477.432739 243.159348 478.359863 214.350327 450.114685 213.053375
+448.506287 241.517822 -40 image-40.jpg - 0 77.625397 10 93.873280
+241.623824 110.513222 256.672058 108.530014 226.064285 77.033516
+226.394882 78.226112 258.234802 -40 image-40.jpg - 0 73.437790 14
+356.463973 260.278878 374.184784 276.776245 373.534241 242.657455
+338.538574 243.591049 339.160217 278.141327 -40 image-5.jpg
+7 - - - - - - - - - - - - - -5 image-5.jpg - 0 146.238892 3
+582.581842 173.022827 591.862793 182.837769 592.110779 164.303558
+572.888550 162.771820 571.704956 182.975510 -5 image-5.jpg - 0
+130.926834 5 703.316733 271.513006 719.540344 289.723969
+722.108398 255.226425 687.392090 253.637634 684.838867 287.527618
+-5 image-5.jpg - 0 144.299271 7 288.165935 226.949293 301.684631
+241.653244 303.145905 212.573822 274.172394 211.728867 273.864258
+240.673843 -5 image-5.jpg - 0 132.030685 8 463.609509 227.987100
+477.383698 243.182129 478.637054 214.372070 450.011261 212.986160
+448.601654 241.584290 -5 image-5.jpg - 1 93.211800 10 122.010988
+237.612926 116.735390 255.911591 126.933197 250.353958 127.294868
+219.285538 117.007805 224.662292 -5 image-5.jpg - 0 147.744156 10
+93.943953 241.580348 110.304306 256.606415 108.602013 225.927856
+77.034477 226.049942 78.394371 258.184845 -5 image-5.jpg - 0
+147.717911 14 356.447363 260.234741 374.159393 276.730865
+373.412231 242.704163 338.671570 243.679230 339.058167 278.203796
+-5 image0.jpg 7 - - - - - - - - - - - - - 0 image0.jpg - 0
+152.046204 3 582.519363 173.033192 591.861633 182.869690
+592.102722 164.273453 572.868591 162.871872 571.678711 182.942169
+0 image0.jpg - 0 137.730133 5 703.321189 271.506498 719.565247
+289.741455 722.132263 255.222824 687.414185 253.649902 684.806580
+287.533539 0 image0.jpg - 0 137.643906 7 288.195621 227.011527
+301.624725 241.717529 303.179321 212.669662 274.220184 211.707245
+273.876526 240.717255 0 image0.jpg - 0 147.959732 8 463.620918
+227.838993 477.517273 243.120804 478.381042 214.398315 450.132507
+213.005798 448.585907 241.529984 0 image0.jpg - 1 99.661888 10
+122.060121 238.170460 117.010849 256.043365 126.975830 250.311508
+127.432625 219.153412 116.722054 224.986252 0 image0.jpg - 0
+155.917755 10 93.870650 241.599170 110.244667 256.736389
+108.645515 225.793991 77.065552 226.063431 78.335129 258.218048 0
+image0.jpg - 0 155.337341 14 356.560603 260.296740 374.131195
+276.638489 373.440552 242.828842 338.751099 243.732788 339.169281
+278.293823 0 image10.jpg 7 - - - - - - - - - - - - - 10
+image10.jpg - 0 175.721802 3 582.490331 173.017079 591.779419
+182.918350 592.171021 164.148972 572.967651 162.866821 571.704712
+182.897369 10 image10.jpg - 0 158.279556 5 703.343955 271.498776
+719.575073 289.678345 722.105164 255.089188 687.394409 253.634583
+684.866699 287.660004 10 image10.jpg - 0 167.794479 7 288.231886
+226.965028 301.741760 241.690445 303.171539 212.650345 274.156708
+211.623444 273.915253 240.682755 10 image10.jpg - 0 168.151886 8
+463.638522 227.911007 477.483978 243.159195 478.564240 214.365463
+450.079803 212.978607 448.627838 241.533661 10 image10.jpg - 0
+171.818054 10 93.926200 241.552944 110.299309 256.630188
+108.640846 225.921890 77.023811 225.988312 78.339165 258.110718 10
+image10.jpg - 1 112.581711 10 121.976516 237.557809 116.783173
+256.147583 127.108536 250.258301 127.065208 219.342636 116.836899
+224.838516 10 image10.jpg - 0 182.821091 14 356.548748 260.285709
+374.113953 276.648285 373.427460 242.750793 338.674408 243.635162
+339.212372 278.296082 10 image15.jpg 7 - - - - - - - - - - - - -
+15 image15.jpg - 0 167.957428 3 582.509230 172.951137 591.895203
+182.904465 591.866028 164.171371 572.961304 162.826065 571.880859
+182.924057 15 image15.jpg - 0 159.378632 5 703.365615 271.555547
+719.533630 289.598602 722.238892 255.163025 687.398804 253.737030
+684.793396 287.686584 15 image15.jpg - 0 161.780823 7 288.236865
+226.882460 301.719025 241.696518 303.163391 212.686295 274.431976
+211.713791 273.726257 240.683060 15 image15.jpg - 0 161.562607 8
+463.658827 227.915890 477.559265 243.181870 478.517700 214.405685
+450.083679 213.007156 448.606720 241.601791 15 image15.jpg - 1
+122.935966 10 121.943891 237.496870 116.730835 256.094025
+127.121193 250.291702 127.026627 219.364624 116.806755 224.801300
+15 image15.jpg - 0 159.466690 10 93.891194 241.603576 110.321274
+256.625061 108.637001 225.881729 77.026535 226.184769 78.422783
+258.095856 15 image15.jpg - 0 174.717819 14 356.440053 260.143360
+374.236023 276.702148 373.289948 242.703842 338.692352 243.629486
+338.974487 278.220093 15 image20.jpg 7 - - - - - - - - - - - - -
+20 image20.jpg - 0 170.566071 3 582.546184 172.984338 591.835266
+182.885056 591.941345 164.277161 573.019653 162.830536 571.750610
+182.989380 20 image20.jpg - 0 157.554382 5 703.380983 271.462281
+719.601624 289.504761 722.079346 255.153061 687.378540 253.662506
+684.840820 287.633514 20 image20.jpg - 0 148.164841 7 288.221572
+226.888636 301.730774 241.643265 303.158844 212.554276 274.346527
+211.734436 273.757538 240.768860 20 image20.jpg - 0 152.385071 8
+463.603803 227.924714 477.361694 243.103333 478.652740 214.313797
+450.088623 213.013870 448.543549 241.545868 20 image20.jpg - 0
+157.655396 10 93.806114 241.555816 110.330559 256.587433
+108.625015 225.725784 77.090378 226.350189 78.339211 258.078064 20
+image20.jpg - 1 122.149773 10 121.910546 238.040866 116.833344
+255.858124 126.919151 250.553116 127.276955 219.208710 116.681580
+224.978119 20 image20.jpg - 0 176.182709 14 356.391787 260.091792
+374.186127 276.631439 373.220428 242.611343 338.830109 243.768402
+338.930695 278.229187 20 image25.jpg 7 - - - - - - - - - - - - -
+25 image25.jpg - 0 156.569031 3 582.555855 172.964075 591.881836
+182.886383 591.908020 164.275742 573.162048 162.969604 571.812561
+182.944794 25 image25.jpg - 0 149.783554 5 703.370325 271.485056
+719.571106 289.579956 722.005371 255.198441 687.405640 253.653854
+684.875061 287.649506 25 image25.jpg - 0 138.127594 7 288.361469
+226.776104 301.760620 241.530075 303.033844 212.779861 274.597717
+211.620667 273.665253 240.795090 25 image25.jpg - 0 145.040298 8
+463.590099 227.854750 477.438965 243.120590 478.592957 214.287933
+450.128937 213.016281 448.546387 241.458511 25 image25.jpg - 0
+146.684967 10 93.806771 241.653028 110.195465 256.574799
+108.705811 225.812683 77.000519 226.351074 78.452278 257.977600 25
+image25.jpg - 1 116.530792 10 122.027877 238.087012 116.779823
+255.890152 126.909157 250.476608 127.586792 219.229324 116.810875
+224.845291 25 image25.jpg - 0 168.714798 14 356.435486 260.075024
+374.362427 276.672455 373.109222 242.620758 338.802032 243.749313
+339.157288 278.162048 25 image30.jpg 7 - - - - - - - - - - - - -
+30 image30.jpg - 0 148.999191 3 582.581100 172.947478 591.957214
+182.952179 591.853882 164.375839 573.162231 162.897156 571.879395
+182.839996 30 image30.jpg - 0 134.839859 5 703.385162 271.425324
+719.641113 289.546783 722.001526 255.144775 687.430237 253.639435
+684.815735 287.664825 30 image30.jpg - 0 132.647964 7 288.328057
+226.668981 301.694946 241.536774 303.040375 212.699677 274.801819
+211.623947 273.437866 240.807175 30 image30.jpg - 0 138.254410 8
+463.529916 227.848052 477.454071 243.149216 478.495239 214.328369
+450.063293 213.049667 448.536469 241.393143 30 image30.jpg - 0
+135.838211 10 93.779785 241.541987 110.278488 256.579834
+108.715004 225.731537 77.190239 226.421341 78.328300 257.898956 30
+image30.jpg - 1 104.018181 10 121.978985 237.261604 116.780342
+255.958664 127.258064 250.105988 126.930664 219.452759 116.879570
+224.854355 30 image30.jpg - 0 162.389801 14 356.332425 260.038280
+374.267059 276.619476 373.120758 242.545563 338.821777 243.849075
+338.965485 278.133881 30 image35.jpg 6 - - - - - - - - - - - - -
+35 image35.jpg - 0 143.577362 3 582.600484 172.970921 591.871887
+182.975571 591.901184 164.392624 573.244202 162.874680 571.833435
+182.901672 35 image35.jpg - 0 132.913101 5 703.354418 271.446508
+719.579712 289.532715 722.019775 255.178665 687.430542 253.696289
+684.825195 287.595703 35 image35.jpg - 0 111.070091 7 288.361074
+226.702227 301.673553 241.470291 303.000641 212.758560 274.801788
+211.660370 273.559723 240.799988 35 image35.jpg - 0 127.737274 8
+463.503393 227.800829 477.408844 243.124283 478.443115 214.264877
+450.153595 213.089691 448.510895 241.384598 35 image35.jpg - 0
+130.645859 10 93.731565 241.597933 110.253548 256.516602
+108.655945 225.578430 77.092133 226.573212 78.464676 257.985077 35
+image35.jpg - 0 151.636505 14 356.323759 260.149991 374.061615
+276.654358 373.041077 242.599030 338.820221 243.863647 339.112976
+278.219025 35 image40.jpg 6 - - - - - - - - - - - - - 40
+image40.jpg - 0 136.289703 3 582.558174 173.086671 591.866516
+183.162384 592.072815 164.372025 573.329590 163.097290 571.919434
+182.830902 40 image40.jpg - 0 118.706474 5 703.370626 271.440331
+719.597351 289.528534 722.069885 255.157288 687.408142 253.646683
+684.924805 287.502686 40 image40.jpg - 0 104.010826 7 288.453467
+226.625569 301.623322 241.275070 303.012390 212.798691 274.992462
+211.652206 273.384918 240.936447 40 image40.jpg - 0 116.560539 8
+463.612217 227.854467 477.438110 243.070892 478.463898 214.325760
+450.166351 213.056290 448.613708 241.516922 40 image40.jpg - 0
+114.659264 10 93.623283 241.564606 110.165688 256.693634
+108.681740 225.542252 77.223244 226.565781 78.488289 257.668396 40
+image40.jpg - 0 139.278503 14 356.398684 259.988609 374.230560
+276.631653 372.945068 242.714706 339.058807 243.804764 339.001495
+278.150726 40 image5.jpg 7 - - - - - - - - - - - - - 5
+image5.jpg - 0 162.240234 3 582.368414 172.974550 591.744507
+182.823959 591.876160 164.065033 572.796631 162.919571 571.699768
+182.971924 5 image5.jpg - 0 150.063400 5 703.354047 271.475288
+719.536255 289.653900 722.035400 255.210068 687.447998 253.606903
+684.775146 287.651306 5 image5.jpg - 0 161.968475 7 288.198273
+226.976219 301.650482 241.698074 303.180023 212.598557 274.209167
+211.666794 273.837860 240.757599 5 image5.jpg - 0 156.497696 8
+463.647128 227.953977 477.486053 243.175110 478.532440 214.446274
+450.056244 213.005661 448.613586 241.596191 5 image5.jpg - 0
+172.235916 10 93.911328 241.621363 110.236282 256.737793
+108.719185 225.908813 77.150673 226.101486 78.310966 258.174835 5
+image5.jpg - 1 103.423279 10 122.002295 237.681535 116.768059
+256.101654 126.945274 250.327789 127.198502 219.395248 116.962845
+224.788467 5 image5.jpg - 0 168.502563 14 356.548485 260.258082
+374.107086 276.708954 373.353363 242.794128 338.602478 243.444244
+339.178833 278.308960 5 #+end_example
 
-I just perfomed a databasy inner join. It matched up the path columns in the two
-input data files, and concatenated the columns in each matching row. So each
-line now has the appropriate "contrast" column.
+I just perfomed a databasy inner join. It matched up the path
+columns in the two input data files, and concatenated the columns
+in each matching row. So each line now has the appropriate
+"contrast" column.
 
-This tool is a wrapper around the "join" UNIX tool you already have on your
-system. Since it is a wrapper, all its various options and flags and
-optimizations in the "join" tool are supported. The reasons this wrapper exists
-is
+This tool is a wrapper around the "join" UNIX tool you already
+have on your system. Since it is a wrapper, all its various
+options and flags and optimizations in the "join" tool are
+supported. The reasons this wrapper exists is
 
 - I can refer to columns by NAME instead of number. Here I asked to join on
   the "path" column, not "column 1".
 - The vnlog legend is read on input, and written on output. The output is a
   valid vnlog
 
-Along the same lines there're more wrappers (vnl-sort, vnl-tail, vnl-ts, ...).
-All of these wrappers barely need any documentation. The instructions are "do
-what you would do with the core tool, but give it column names"
+Along the same lines there're more wrappers (vnl-sort, vnl-tail,
+vnl-ts, ...). All of these wrappers barely need any documentation.
+The instructions are "do what you would do with the core tool, but
+give it column names"
 
-Since we can, let's sort the above numerically by contrast, and let's align the columns
+Since we can, let's sort the above numerically by contrast, and
+let's align the columns
 
 #+BEGIN_SRC shell :results output verbatim
-< joint.vnl vnl-sort -s -k contrast -n | vnl-align | tee joint2.vnl
-#+END_SRC
+< joint.vnl vnl-sort -s -k contrast -n | vnl-align | tee
+joint2.vnl #+END_SRC
 
 #+RESULTS:
 #+begin_example
 #   path     Ndetections hamming   margin   id     xc         yc         xlb        ylb        xrb        yrb        xrt        yrt        xlt        ylt    contrast
-image-40.jpg 6           -       -          -  -          -          -          -          -          -          -          -          -          -          -40     
-image-40.jpg -           0        74.567070  3 582.408316 172.931692 591.926147 182.888397 591.903320 164.218613 572.647949 162.721268 571.588379 182.860596 -40     
-image-40.jpg -           0        65.147789  5 703.263898 271.568411 719.495667 289.698822 722.179565 255.134354 687.288330 253.724167 684.770264 287.635803 -40     
-image-40.jpg -           0        70.152679  7 288.204301 227.003151 301.628510 241.627899 303.243469 212.524704 274.226105 211.774872 273.832581 240.839035 -40     
-image-40.jpg -           0        77.425507  8 463.680504 227.967838 477.354340 243.193436 478.636810 214.414871 450.096832 212.842636 448.616119 241.618744 -40     
-image-40.jpg -           0        74.294899 10  93.898696 241.684850 110.216385 256.465912 108.712372 225.756760  76.741806 226.143616  78.519638 258.220856 -40     
-image-40.jpg -           0        74.814964 14 356.540243 260.297886 374.084137 276.652527 373.657898 242.719147 338.760406 243.723297 339.128754 278.178375 -40     
-image-35.jpg 6           -       -          -  -          -          -          -          -          -          -          -          -          -          -35     
-image-35.jpg -           0        78.520988  3 582.491224 172.952249 591.931824 182.881042 591.817444 164.320145 572.758667 162.716400 571.589233 183.042847 -35     
-image-35.jpg -           0        71.948700  5 703.297832 271.494161 719.513550 289.735718 722.236023 255.194077 687.421021 253.633850 684.595032 287.591644 -35     
-image-35.jpg -           0        83.009399  7 288.066456 226.944191 301.537384 241.695206 303.074951 212.539734 274.155975 211.711853 273.727692 240.705872 -35     
-image-35.jpg -           0        73.811592  8 463.714076 227.980203 477.604340 243.255920 478.625885 214.474594 450.090027 212.997253 448.703949 241.574860 -35     
-image-35.jpg -           0        80.245712 10  93.979738 241.623966 110.360573 256.503113 108.697815 225.942871  76.905357 226.114853  78.357567 258.268311 -35     
-image-35.jpg -           0        85.607376 14 356.468081 260.433617 373.845825 276.689819 373.682892 242.711578 338.594727 243.713791 339.106903 278.306335 -35     
-image-30.jpg 6           -       -          -  -          -          -          -          -          -          -          -          -          -          -30     
-image-30.jpg -           0        83.514610  3 582.493087 172.877977 591.939575 182.777390 591.952332 164.088898 572.884216 162.808395 571.671570 182.932816 -30     
-image-30.jpg -           0        82.557037  5 703.267563 271.494900 719.553955 289.822937 722.133606 255.158813 687.483826 253.732529 684.705383 287.567871 -30     
-image-30.jpg -           0        90.958885  7 288.101084 227.090059 301.640808 241.752625 303.215454 212.492065 273.914062 211.726517 274.104431 240.608521 -30     
-image-30.jpg -           0        87.148773  8 463.625898 227.960990 477.405884 243.240677 478.623169 214.366089 450.106110 212.969818 448.557373 241.620483 -30     
-image-30.jpg -           0        93.100655 10  93.834025 241.659354 110.302330 256.948761 108.740761 225.908234  76.950630 225.984573  78.341843 258.029083 -30     
-image-30.jpg -           0        98.957405 14 356.401889 260.202989 374.227753 276.763702 373.405518 242.595337 338.727539 243.783035 339.096069 278.123566 -30     
-image-25.jpg 6           -       -          -  -          -          -          -          -          -          -          -          -          -          -25     
-image-25.jpg -           0       101.963249  3 582.460989 172.949499 591.819519 182.814896 591.948608 164.176697 572.910583 162.881836 571.665344 182.931778 -25     
-image-25.jpg -           0        95.796631  5 703.323802 271.448482 719.605530 289.620453 721.912292 255.277313 687.368408 253.640732 684.768311 287.590942 -25     
-image-25.jpg -           0        96.303810  7 288.099818 227.010848 301.633179 241.890839 303.147247 212.754578 274.184692 211.711105 273.713745 240.640533 -25     
-image-25.jpg -           0        97.300591  8 463.585566 227.984330 477.342834 243.088074 478.706940 214.310684 449.995300 213.063934 448.662231 241.478897 -25     
-image-25.jpg -           0       106.160927 10  93.802895 241.664950 110.306366 256.832947 108.580566 225.929092  76.999184 226.221008  78.386513 258.080933 -25     
-image-25.jpg -           0       101.135300 14 356.490566 260.247538 374.122528 276.689484 373.426453 242.673325 338.720673 243.676971 339.116547 278.276398 -25     
-image-20.jpg 7           -       -          -  -          -          -          -          -          -          -          -          -          -          -20     
-image-20.jpg -           0       113.976898  3 582.376280 173.082394 591.849609 183.225174 592.070557 164.219574 572.877075 162.911911 571.628906 182.907990 -20     
-image-20.jpg -           0        99.906609  5 703.246873 271.511032 719.554749 289.762512 722.153137 255.231812 687.338989 253.707214 684.729553 287.455353 -20     
-image-20.jpg -           0       106.102463  7 288.176293 226.900628 301.752472 241.811157 303.221680 212.726028 274.230469 211.584122 273.655762 240.580750 -20     
-image-20.jpg -           0       109.154716  8 463.544134 228.026719 477.358002 243.157089 478.605774 214.338058 449.958527 213.146362 448.733276 241.487457 -20     
-image-20.jpg -           1        64.433556 10 122.121187 238.316891 117.041420 255.845703 127.026230 250.101334 127.841454 218.577896 116.595306 225.040878 -20     
-image-20.jpg -           0       115.829346 10  93.933618 241.630572 110.226807 256.717224 108.814903 225.958939  77.057655 226.004303  78.312386 258.081451 -20     
-image-20.jpg -           0       112.336708 14 356.535984 260.247938 374.286774 276.757996 373.438416 242.775986 338.666260 243.627258 339.138672 278.231445 -20     
-image-15.jpg 7           -       -          -  -          -          -          -          -          -          -          -          -          -          -15     
-image-15.jpg -           0       119.942238  3 582.441218 173.012720 591.748230 182.832184 591.917053 164.211609 572.818054 162.859695 571.776794 182.917786 -15     
-image-15.jpg -           0       113.610405  5 703.278408 271.439443 719.561523 289.655853 722.032837 255.145477 687.379272 253.652603 684.719116 287.563873 -15     
-image-15.jpg -           0       117.623398  7 288.105885 226.929633 301.728485 241.686920 303.038422 212.661331 274.064636 211.718826 273.801300 240.597916 -15     
-image-15.jpg -           0       117.287888  8 463.629818 227.859340 477.499908 243.161270 478.484711 214.407578 450.135773 212.972275 448.554932 241.510315 -15     
-image-15.jpg -           0       123.443581 10  93.883108 241.664164 110.248955 256.719635 108.616432 226.005417  76.985298 226.119324  78.261032 258.267487 -15     
-image-15.jpg -           1        73.299255 10 121.931773 237.850301 116.686264 256.008820 126.882904 250.487000 127.317070 219.207870 116.849792 224.879639 -15     
-image-15.jpg -           0       123.640686 14 356.510976 260.230758 374.175262 276.740417 373.330231 242.837387 338.679626 243.564957 339.185516 278.147614 -15     
-image-10.jpg 7           -       -          -  -          -          -          -          -          -          -          -          -          -          -10     
-image-10.jpg -           0       126.350060  3 582.426290 172.925710 591.818359 182.820786 591.810059 164.258972 572.861267 162.848419 571.537170 182.982773 -10     
-image-10.jpg -           0       117.342888  5 703.324282 271.482837 719.601013 289.648346 722.117065 255.214828 687.424255 253.737747 684.730286 287.578766 -10     
-image-10.jpg -           0       130.914505  7 288.187794 226.949523 301.688416 241.783295 303.156921 212.639999 274.229431 211.612808 273.878540 240.628250 -10     
-image-10.jpg -           0       129.773300  8 463.641633 227.933462 477.464355 243.264282 478.625763 214.467133 450.144135 212.963348 448.578125 241.471130 -10     
-image-10.jpg -           0       131.717896 10  93.924459 241.626464 110.316399 256.713226 108.672333 225.918533  76.940193 225.994537  78.423958 258.136017 -10     
-image-10.jpg -           1        84.017395 10 121.932686 237.601317 116.787170 255.994186 127.029190 250.328033 127.040977 219.341507 116.823296 224.842422 -10     
-image-10.jpg -           0       137.056732 14 356.570837 260.296917 374.116364 276.651398 373.532440 242.751968 338.613251 243.558350 339.170532 278.295654 -10     
-image-5.jpg  7           -       -          -  -          -          -          -          -          -          -          -          -          -           -5     
-image-5.jpg  -           0       143.518005  3 582.466730 172.959814 591.821289 182.831512 591.820190 164.199890 572.858643 162.820572 571.774841 182.973236  -5     
-image-5.jpg  -           0       139.503403  5 703.323053 271.559769 719.616089 289.878754 722.036133 255.343430 687.388367 253.643692 684.794983 287.615784  -5     
-image-5.jpg  -           0       134.305206  7 288.088244 226.996887 301.701935 241.837280 303.136108 212.644455 274.012329 211.652618 273.773926 240.649673  -5     
-image-5.jpg  -           0       141.046936  8 463.602033 227.936270 477.441772 243.157227 478.602966 214.409180 450.006439 212.983826 448.606934 241.458099  -5     
-image-5.jpg  -           0       148.071869 10  93.905178 241.522576 110.339096 256.648743 108.609779 225.876434  77.036118 225.995895  78.338409 258.086090  -5     
-image-5.jpg  -           0        84.928467 10 121.913011 237.588994 116.819489 255.891541 127.109688 250.297684 127.013092 219.262878 116.749886 224.962357  -5     
-image-5.jpg  -           0       149.064926 14 356.490051 260.321450 374.098877 276.814789 373.440186 242.784836 338.588593 243.554016 339.257721 278.150024  -5     
-image0.jpg   7           -       -          -  -          -          -          -          -          -          -          -          -          -            0     
-image0.jpg   -           0       151.080475  3 582.478681 172.892822 591.866516 182.818924 591.800659 164.252945 572.934570 162.801483 571.651978 182.927322   0     
-image0.jpg   -           0       150.162537  5 703.326659 271.454680 719.539307 289.703003 722.126221 255.193527 687.552979 253.700439 684.659241 287.601532   0     
-image0.jpg   -           0       153.934570  7 288.162638 226.943832 301.770660 241.776001 303.067688 212.618988 274.229492 211.757294 273.874481 240.675797   0     
-image0.jpg   -           0       155.698380  8 463.605778 227.943833 477.418945 243.179886 478.619293 214.308929 450.089539 213.035294 448.671417 241.506851   0     
-image0.jpg   -           0       157.792770 10  93.954670 241.607783 110.268860 256.681519 108.707977 225.918457  77.062897 226.000381  78.319611 258.234802   0     
-image0.jpg   -           1        97.124802 10 122.009952 237.876637 116.784622 256.058197 126.940483 250.385330 127.442070 218.975555 116.884979 224.874649   0     
-image0.jpg   -           0       162.089478 14 356.504777 260.312837 374.136505 276.675873 373.469299 242.792084 338.632141 243.726227 339.204376 278.180481   0     
-image5.jpg   7           -       -          -  -          -          -          -          -          -          -          -          -          -            5     
-image5.jpg   -           0       167.316391  3 582.391102 172.921019 591.867554 182.893555 591.834534 164.105011 572.874084 162.905792 571.726257 182.877289   5     
-image5.jpg   -           0       154.547180  5 703.400186 271.575754 719.544617 289.592560 722.174561 255.217804 687.374939 253.691956 684.869751 287.721161   5     
-image5.jpg   -           0       151.238144  7 288.178099 226.889699 301.640564 241.724106 303.183807 212.607666 274.369934 211.674362 273.712677 240.657501   5     
-image5.jpg   -           0       157.995697  8 463.674169 227.938570 477.511383 243.181107 478.596466 214.451752 450.044647 212.924820 448.604675 241.558426   5     
-image5.jpg   -           1       107.191063 10 122.034252 237.936599 116.848274 256.036865 126.952919 250.203033 127.381691 219.272797 116.750687 224.760162   5     
-image5.jpg   -           0       170.191254 10  94.000018 241.601782 110.308701 256.533630 108.749687 225.929535  77.025192 226.060028  78.378990 258.199890   5     
-image5.jpg   -           0       166.187317 14 356.423421 260.220687 374.207642 276.763611 373.349976 242.644272 338.680573 243.716248 339.167633 278.138977   5     
-image10.jpg  7           -       -          -  -          -          -          -          -          -          -          -          -          -           10     
-image10.jpg  -           0       176.106720  3 582.522980 172.983983 591.831909 182.867752 592.170715 164.107162 572.956665 162.826935 571.730896 182.913712  10     
-image10.jpg  -           0       161.531967  5 703.367626 271.486486 719.606384 289.659088 722.101379 255.208801 687.423035 253.643082 684.798889 287.620789  10     
-image10.jpg  -           0       156.631409  7 288.193671 226.973512 301.685516 241.711136 303.246429 212.602554 274.283844 211.779312 273.811981 240.703796  10     
-image10.jpg  -           0       161.841919  8 463.603256 227.931879 477.398163 243.248749 478.640259 214.359894 450.096954 212.935455 448.623230 241.452438  10     
-image10.jpg  -           0       105.558258 10 121.942771 237.989864 116.859749 255.841568 126.961357 250.500153 127.256027 219.329575 116.689026 224.893372  10     
-image10.jpg  -           0       173.409027 10  93.959416 241.598451 110.220673 256.694489 108.756004 225.964127  77.150490 225.993988  78.353706 258.087708  10     
-image10.jpg  -           0       179.732864 14 356.435850 260.194792 374.190430 276.728760 373.321106 242.736450 338.588287 243.574234 339.018951 278.202820  10     
-image15.jpg  7           -       -          -  -          -          -          -          -          -          -          -          -          -           15     
-image15.jpg  -           0       174.378952  3 582.458758 172.903678 591.896301 182.933136 591.862244 164.137665 573.009155 162.861404 571.754883 182.881927  15     
-image15.jpg  -           0       162.623184  5 703.363451 271.547922 719.543091 289.639740 722.097961 255.199158 687.325195 253.614197 684.852600 287.701508  15     
-image15.jpg  -           0       152.717468  7 288.290146 226.862695 301.776764 241.669006 303.169403 212.678070 274.474030 211.694641 273.714478 240.757904  15     
-image15.jpg  -           0       156.109344  8 463.617341 227.964898 477.457367 243.227127 478.647919 214.397110 450.021729 212.972198 448.642700 241.482193  15     
-image15.jpg  -           0       161.336304 10  93.892426 241.578138 110.276772 256.634827 108.656021 225.887543  77.092995 226.139999  78.392326 258.051483  15     
-image15.jpg  -           1       125.816437 10 122.030756 238.089296 116.920326 255.910202 126.978043 250.472046 127.459923 219.156906 116.743317 224.855164  15     
-image15.jpg  -           0       179.410049 14 356.420333 260.150802 374.316315 276.702637 373.255096 242.684738 338.627167 243.694061 338.995087 278.229492  15     
-image20.jpg  7           -       -          -  -          -          -          -          -          -          -          -          -          -           20     
-image20.jpg  -           0       166.781265  3 582.580566 172.918505 591.868347 182.805328 591.864197 164.283600 573.154785 162.884781 571.764221 182.979019  20     
-image20.jpg  -           0       158.838806  5 703.325347 271.503915 719.521545 289.575256 722.068542 255.098053 687.408386 253.744141 684.810364 287.710022  20     
-image20.jpg  -           0       148.891586  7 288.311732 226.792524 301.743256 241.635849 303.183624 212.678894 274.592712 211.631485 273.686432 240.672134  20     
-image20.jpg  -           0       158.208237  8 463.618071 227.802797 477.539612 243.163437 478.451691 214.351242 450.169128 212.963608 448.530273 241.484848  20     
-image20.jpg  -           0       152.451630 10  93.906742 241.610524 110.209549 256.582367 108.715866 225.858917  77.046715 226.126953  78.461563 258.038666  20     
-image20.jpg  -           1       122.124168 10 121.993658 237.849185 116.802597 256.111328 127.002579 250.350983 127.312660 219.136948 116.768433 224.807510  20     
-image20.jpg  -           0       180.308456 14 356.368529 260.124533 374.253052 276.713715 373.155365 242.630478 338.714691 243.749329 339.002045 278.222656  20     
-image25.jpg  7           -       -          -  -          -          -          -          -          -          -          -          -          -           25     
-image25.jpg  -           0       159.849762  3 582.507313 172.942121 591.795227 182.906143 591.923889 164.254883 573.199036 162.956253 571.731934 182.882919  25     
-image25.jpg  -           0       147.108521  5 703.373357 271.495786 719.593933 289.606293 722.075439 255.179565 687.425171 253.689407 684.764771 287.730438  25     
-image25.jpg  -           0       140.312759  7 288.268145 226.829514 301.681274 241.609970 303.048981 212.666824 274.490417 211.647293 273.689331 240.798630  25     
-image25.jpg  -           0       146.996597  8 463.560976 227.951441 477.338593 243.141922 478.685333 214.351578 450.017700 213.019333 448.623505 241.383255  25     
-image25.jpg  -           0       153.694931 10  93.782942 241.547014 110.238510 256.693695 108.635750 225.810196  77.103790 226.194534  78.383408 257.863098  25     
-image25.jpg  -           1       113.686241 10 122.072088 238.076012 116.913773 255.912231 127.017334 250.324402 127.539810 219.169937 116.757484 224.912796  25     
-image25.jpg  -           0       165.689682 14 356.385970 260.018932 374.231659 276.600433 373.118774 242.689636 338.880737 243.753769 338.837830 278.192627  25     
-image30.jpg  6           -       -          -  -          -          -          -          -          -          -          -          -          -           30     
-image30.jpg  -           0       155.947281  3 582.636028 173.051766 591.825500 182.860748 592.247253 164.294495 573.197205 162.976624 571.755920 182.965179  30     
-image30.jpg  -           0       138.224838  5 703.368819 271.424655 719.648376 289.561981 721.993958 255.153336 687.420532 253.656403 684.844238 287.608124  30     
-image30.jpg  -           0       133.446503  7 288.290607 226.769328 301.734863 241.633545 303.016510 212.739883 274.621857 211.656906 273.618622 240.747406  30     
-image30.jpg  -           0       135.654953  8 463.597073 227.824380 477.429749 243.000046 478.510620 214.266556 450.144165 213.065353 448.515228 241.535202  30     
-image30.jpg  -           0       140.644104 10  93.730744 241.561373 110.169113 256.586182 108.604462 225.684967  77.192940 226.445679  78.414024 257.910645  30     
-image30.jpg  -           0       161.092865 14 356.330265 260.039398 374.178680 276.620728 373.045410 242.579193 338.886902 243.834366 338.890930 278.256073  30     
-image35.jpg  6           -       -          -  -          -          -          -          -          -          -          -          -          -           35     
-image35.jpg  -           0       148.003799  3 582.602812 172.953155 591.831360 182.879761 591.932190 164.355331 573.335510 162.984863 571.741272 182.962997  35     
-image35.jpg  -           0       128.799789  5 703.411014 271.430731 719.605774 289.397095 721.909668 255.200394 687.414001 253.683746 684.910339 287.662842  35     
-image35.jpg  -           0       116.667206  7 288.362653 226.640979 301.669708 241.467621 302.959503 212.737717 274.827393 211.560074 273.481903 240.814651  35     
-image35.jpg  -           0       125.475433  8 463.518144 227.905292 477.252869 243.107758 478.615540 214.276764 450.177765 213.139313 448.544403 241.422195  35     
-image35.jpg  -           0       127.881958 10  93.716440 241.548957 110.157845 256.553619 108.684151 225.622009  77.216469 226.490845  78.305069 257.947998  35     
-image35.jpg  -           0       152.890747 14 356.334809 260.064420 374.221649 276.635925 372.903595 242.615967 338.846680 243.862305 339.119873 278.193329  35     
-image40.jpg  7           -       -          -  -          -          -          -          -          -          -          -          -          -           40     
-image40.jpg  -           0       127.371559  3 582.583398 173.123045 591.818726 183.226852 592.238037 164.394623 573.372803 163.046295 571.925476 182.758499  40     
-image40.jpg  -           0       119.014404  5 703.381047 271.421501 719.683289 289.451630 721.879761 255.190414 687.400208 253.746841 684.933044 287.608093  40     
-image40.jpg  -           0       107.545021  7 288.409140 226.680896 301.746521 241.518707 303.076416 212.850510 274.796478 211.536835 273.480530 240.757706  40     
-image40.jpg  -           0       115.860542  8 463.527455 227.804866 477.374695 243.120148 478.586609 214.259140 450.197815 213.062057 448.446899 241.369843  40     
-image40.jpg  -           0       113.515663 10  93.702362 241.371369 110.230408 256.532410 108.569290 225.665634  77.392113 226.410110  78.197205 257.751343  40     
-image40.jpg  -           1        88.120728 10 122.013354 237.775164 116.815285 255.858810 126.994438 250.219040 127.297348 219.392593 116.872566 224.932312  40     
-image40.jpg  -           0       138.113480 14 356.254937 259.987364 374.180267 276.610870 372.827515 242.589813 338.918884 243.910339 338.979462 278.122803  40     
-#+end_example
+image-40.jpg 6 - - - - - - - - - - - - - -40 image-40.jpg - 0
+74.567070 3 582.408316 172.931692 591.926147 182.888397 591.903320
+164.218613 572.647949 162.721268 571.588379 182.860596 -40
+image-40.jpg - 0 65.147789 5 703.263898 271.568411 719.495667
+289.698822 722.179565 255.134354 687.288330 253.724167 684.770264
+287.635803 -40 image-40.jpg - 0 70.152679 7 288.204301 227.003151
+301.628510 241.627899 303.243469 212.524704 274.226105 211.774872
+273.832581 240.839035 -40 image-40.jpg - 0 77.425507 8 463.680504
+227.967838 477.354340 243.193436 478.636810 214.414871 450.096832
+212.842636 448.616119 241.618744 -40 image-40.jpg - 0 74.294899 10
+93.898696 241.684850 110.216385 256.465912 108.712372 225.756760
+76.741806 226.143616 78.519638 258.220856 -40 image-40.jpg - 0
+74.814964 14 356.540243 260.297886 374.084137 276.652527
+373.657898 242.719147 338.760406 243.723297 339.128754 278.178375
+-40 image-35.jpg 6 - - - - - - - - - - - - - -35 image-35.jpg - 0
+78.520988 3 582.491224 172.952249 591.931824 182.881042 591.817444
+164.320145 572.758667 162.716400 571.589233 183.042847 -35
+image-35.jpg - 0 71.948700 5 703.297832 271.494161 719.513550
+289.735718 722.236023 255.194077 687.421021 253.633850 684.595032
+287.591644 -35 image-35.jpg - 0 83.009399 7 288.066456 226.944191
+301.537384 241.695206 303.074951 212.539734 274.155975 211.711853
+273.727692 240.705872 -35 image-35.jpg - 0 73.811592 8 463.714076
+227.980203 477.604340 243.255920 478.625885 214.474594 450.090027
+212.997253 448.703949 241.574860 -35 image-35.jpg - 0 80.245712 10
+93.979738 241.623966 110.360573 256.503113 108.697815 225.942871
+76.905357 226.114853 78.357567 258.268311 -35 image-35.jpg - 0
+85.607376 14 356.468081 260.433617 373.845825 276.689819
+373.682892 242.711578 338.594727 243.713791 339.106903 278.306335
+-35 image-30.jpg 6 - - - - - - - - - - - - - -30 image-30.jpg - 0
+83.514610 3 582.493087 172.877977 591.939575 182.777390 591.952332
+164.088898 572.884216 162.808395 571.671570 182.932816 -30
+image-30.jpg - 0 82.557037 5 703.267563 271.494900 719.553955
+289.822937 722.133606 255.158813 687.483826 253.732529 684.705383
+287.567871 -30 image-30.jpg - 0 90.958885 7 288.101084 227.090059
+301.640808 241.752625 303.215454 212.492065 273.914062 211.726517
+274.104431 240.608521 -30 image-30.jpg - 0 87.148773 8 463.625898
+227.960990 477.405884 243.240677 478.623169 214.366089 450.106110
+212.969818 448.557373 241.620483 -30 image-30.jpg - 0 93.100655 10
+93.834025 241.659354 110.302330 256.948761 108.740761 225.908234
+76.950630 225.984573 78.341843 258.029083 -30 image-30.jpg - 0
+98.957405 14 356.401889 260.202989 374.227753 276.763702
+373.405518 242.595337 338.727539 243.783035 339.096069 278.123566
+-30 image-25.jpg 6 - - - - - - - - - - - - - -25 image-25.jpg - 0
+101.963249 3 582.460989 172.949499 591.819519 182.814896
+591.948608 164.176697 572.910583 162.881836 571.665344 182.931778
+-25 image-25.jpg - 0 95.796631 5 703.323802 271.448482 719.605530
+289.620453 721.912292 255.277313 687.368408 253.640732 684.768311
+287.590942 -25 image-25.jpg - 0 96.303810 7 288.099818 227.010848
+301.633179 241.890839 303.147247 212.754578 274.184692 211.711105
+273.713745 240.640533 -25 image-25.jpg - 0 97.300591 8 463.585566
+227.984330 477.342834 243.088074 478.706940 214.310684 449.995300
+213.063934 448.662231 241.478897 -25 image-25.jpg - 0 106.160927
+10 93.802895 241.664950 110.306366 256.832947 108.580566
+225.929092 76.999184 226.221008 78.386513 258.080933 -25
+image-25.jpg - 0 101.135300 14 356.490566 260.247538 374.122528
+276.689484 373.426453 242.673325 338.720673 243.676971 339.116547
+278.276398 -25 image-20.jpg 7 - - - - - - - - - - - - - -20
+image-20.jpg - 0 113.976898 3 582.376280 173.082394 591.849609
+183.225174 592.070557 164.219574 572.877075 162.911911 571.628906
+182.907990 -20 image-20.jpg - 0 99.906609 5 703.246873 271.511032
+719.554749 289.762512 722.153137 255.231812 687.338989 253.707214
+684.729553 287.455353 -20 image-20.jpg - 0 106.102463 7 288.176293
+226.900628 301.752472 241.811157 303.221680 212.726028 274.230469
+211.584122 273.655762 240.580750 -20 image-20.jpg - 0 109.154716 8
+463.544134 228.026719 477.358002 243.157089 478.605774 214.338058
+449.958527 213.146362 448.733276 241.487457 -20 image-20.jpg - 1
+64.433556 10 122.121187 238.316891 117.041420 255.845703
+127.026230 250.101334 127.841454 218.577896 116.595306 225.040878
+-20 image-20.jpg - 0 115.829346 10 93.933618 241.630572 110.226807
+256.717224 108.814903 225.958939 77.057655 226.004303 78.312386
+258.081451 -20 image-20.jpg - 0 112.336708 14 356.535984
+260.247938 374.286774 276.757996 373.438416 242.775986 338.666260
+243.627258 339.138672 278.231445 -20 image-15.jpg
+7 - - - - - - - - - - - - - -15 image-15.jpg - 0 119.942238 3
+582.441218 173.012720 591.748230 182.832184 591.917053 164.211609
+572.818054 162.859695 571.776794 182.917786 -15 image-15.jpg - 0
+113.610405 5 703.278408 271.439443 719.561523 289.655853
+722.032837 255.145477 687.379272 253.652603 684.719116 287.563873
+-15 image-15.jpg - 0 117.623398 7 288.105885 226.929633 301.728485
+241.686920 303.038422 212.661331 274.064636 211.718826 273.801300
+240.597916 -15 image-15.jpg - 0 117.287888 8 463.629818 227.859340
+477.499908 243.161270 478.484711 214.407578 450.135773 212.972275
+448.554932 241.510315 -15 image-15.jpg - 0 123.443581 10 93.883108
+241.664164 110.248955 256.719635 108.616432 226.005417 76.985298
+226.119324 78.261032 258.267487 -15 image-15.jpg - 1 73.299255 10
+121.931773 237.850301 116.686264 256.008820 126.882904 250.487000
+127.317070 219.207870 116.849792 224.879639 -15 image-15.jpg - 0
+123.640686 14 356.510976 260.230758 374.175262 276.740417
+373.330231 242.837387 338.679626 243.564957 339.185516 278.147614
+-15 image-10.jpg 7 - - - - - - - - - - - - - -10 image-10.jpg - 0
+126.350060 3 582.426290 172.925710 591.818359 182.820786
+591.810059 164.258972 572.861267 162.848419 571.537170 182.982773
+-10 image-10.jpg - 0 117.342888 5 703.324282 271.482837 719.601013
+289.648346 722.117065 255.214828 687.424255 253.737747 684.730286
+287.578766 -10 image-10.jpg - 0 130.914505 7 288.187794 226.949523
+301.688416 241.783295 303.156921 212.639999 274.229431 211.612808
+273.878540 240.628250 -10 image-10.jpg - 0 129.773300 8 463.641633
+227.933462 477.464355 243.264282 478.625763 214.467133 450.144135
+212.963348 448.578125 241.471130 -10 image-10.jpg - 0 131.717896
+10 93.924459 241.626464 110.316399 256.713226 108.672333
+225.918533 76.940193 225.994537 78.423958 258.136017 -10
+image-10.jpg - 1 84.017395 10 121.932686 237.601317 116.787170
+255.994186 127.029190 250.328033 127.040977 219.341507 116.823296
+224.842422 -10 image-10.jpg - 0 137.056732 14 356.570837
+260.296917 374.116364 276.651398 373.532440 242.751968 338.613251
+243.558350 339.170532 278.295654 -10 image-5.jpg
+7 - - - - - - - - - - - - - -5 image-5.jpg - 0 143.518005 3
+582.466730 172.959814 591.821289 182.831512 591.820190 164.199890
+572.858643 162.820572 571.774841 182.973236 -5 image-5.jpg - 0
+139.503403 5 703.323053 271.559769 719.616089 289.878754
+722.036133 255.343430 687.388367 253.643692 684.794983 287.615784
+-5 image-5.jpg - 0 134.305206 7 288.088244 226.996887 301.701935
+241.837280 303.136108 212.644455 274.012329 211.652618 273.773926
+240.649673 -5 image-5.jpg - 0 141.046936 8 463.602033 227.936270
+477.441772 243.157227 478.602966 214.409180 450.006439 212.983826
+448.606934 241.458099 -5 image-5.jpg - 0 148.071869 10 93.905178
+241.522576 110.339096 256.648743 108.609779 225.876434 77.036118
+225.995895 78.338409 258.086090 -5 image-5.jpg - 0 84.928467 10
+121.913011 237.588994 116.819489 255.891541 127.109688 250.297684
+127.013092 219.262878 116.749886 224.962357 -5 image-5.jpg - 0
+149.064926 14 356.490051 260.321450 374.098877 276.814789
+373.440186 242.784836 338.588593 243.554016 339.257721 278.150024
+-5 image0.jpg 7 - - - - - - - - - - - - - 0 image0.jpg - 0
+151.080475 3 582.478681 172.892822 591.866516 182.818924
+591.800659 164.252945 572.934570 162.801483 571.651978 182.927322
+0 image0.jpg - 0 150.162537 5 703.326659 271.454680 719.539307
+289.703003 722.126221 255.193527 687.552979 253.700439 684.659241
+287.601532 0 image0.jpg - 0 153.934570 7 288.162638 226.943832
+301.770660 241.776001 303.067688 212.618988 274.229492 211.757294
+273.874481 240.675797 0 image0.jpg - 0 155.698380 8 463.605778
+227.943833 477.418945 243.179886 478.619293 214.308929 450.089539
+213.035294 448.671417 241.506851 0 image0.jpg - 0 157.792770 10
+93.954670 241.607783 110.268860 256.681519 108.707977 225.918457
+77.062897 226.000381 78.319611 258.234802 0 image0.jpg - 1
+97.124802 10 122.009952 237.876637 116.784622 256.058197
+126.940483 250.385330 127.442070 218.975555 116.884979 224.874649
+0 image0.jpg - 0 162.089478 14 356.504777 260.312837 374.136505
+276.675873 373.469299 242.792084 338.632141 243.726227 339.204376
+278.180481 0 image5.jpg 7 - - - - - - - - - - - - - 5 image5.jpg -
+0 167.316391 3 582.391102 172.921019 591.867554 182.893555
+591.834534 164.105011 572.874084 162.905792 571.726257 182.877289
+5 image5.jpg - 0 154.547180 5 703.400186 271.575754 719.544617
+289.592560 722.174561 255.217804 687.374939 253.691956 684.869751
+287.721161 5 image5.jpg - 0 151.238144 7 288.178099 226.889699
+301.640564 241.724106 303.183807 212.607666 274.369934 211.674362
+273.712677 240.657501 5 image5.jpg - 0 157.995697 8 463.674169
+227.938570 477.511383 243.181107 478.596466 214.451752 450.044647
+212.924820 448.604675 241.558426 5 image5.jpg - 1 107.191063 10
+122.034252 237.936599 116.848274 256.036865 126.952919 250.203033
+127.381691 219.272797 116.750687 224.760162 5 image5.jpg - 0
+170.191254 10 94.000018 241.601782 110.308701 256.533630
+108.749687 225.929535 77.025192 226.060028 78.378990 258.199890 5
+image5.jpg - 0 166.187317 14 356.423421 260.220687 374.207642
+276.763611 373.349976 242.644272 338.680573 243.716248 339.167633
+278.138977 5 image10.jpg 7 - - - - - - - - - - - - - 10
+image10.jpg - 0 176.106720 3 582.522980 172.983983 591.831909
+182.867752 592.170715 164.107162 572.956665 162.826935 571.730896
+182.913712 10 image10.jpg - 0 161.531967 5 703.367626 271.486486
+719.606384 289.659088 722.101379 255.208801 687.423035 253.643082
+684.798889 287.620789 10 image10.jpg - 0 156.631409 7 288.193671
+226.973512 301.685516 241.711136 303.246429 212.602554 274.283844
+211.779312 273.811981 240.703796 10 image10.jpg - 0 161.841919 8
+463.603256 227.931879 477.398163 243.248749 478.640259 214.359894
+450.096954 212.935455 448.623230 241.452438 10 image10.jpg - 0
+105.558258 10 121.942771 237.989864 116.859749 255.841568
+126.961357 250.500153 127.256027 219.329575 116.689026 224.893372
+10 image10.jpg - 0 173.409027 10 93.959416 241.598451 110.220673
+256.694489 108.756004 225.964127 77.150490 225.993988 78.353706
+258.087708 10 image10.jpg - 0 179.732864 14 356.435850 260.194792
+374.190430 276.728760 373.321106 242.736450 338.588287 243.574234
+339.018951 278.202820 10 image15.jpg 7 - - - - - - - - - - - - -
+15 image15.jpg - 0 174.378952 3 582.458758 172.903678 591.896301
+182.933136 591.862244 164.137665 573.009155 162.861404 571.754883
+182.881927 15 image15.jpg - 0 162.623184 5 703.363451 271.547922
+719.543091 289.639740 722.097961 255.199158 687.325195 253.614197
+684.852600 287.701508 15 image15.jpg - 0 152.717468 7 288.290146
+226.862695 301.776764 241.669006 303.169403 212.678070 274.474030
+211.694641 273.714478 240.757904 15 image15.jpg - 0 156.109344 8
+463.617341 227.964898 477.457367 243.227127 478.647919 214.397110
+450.021729 212.972198 448.642700 241.482193 15 image15.jpg - 0
+161.336304 10 93.892426 241.578138 110.276772 256.634827
+108.656021 225.887543 77.092995 226.139999 78.392326 258.051483 15
+image15.jpg - 1 125.816437 10 122.030756 238.089296 116.920326
+255.910202 126.978043 250.472046 127.459923 219.156906 116.743317
+224.855164 15 image15.jpg - 0 179.410049 14 356.420333 260.150802
+374.316315 276.702637 373.255096 242.684738 338.627167 243.694061
+338.995087 278.229492 15 image20.jpg 7 - - - - - - - - - - - - -
+20 image20.jpg - 0 166.781265 3 582.580566 172.918505 591.868347
+182.805328 591.864197 164.283600 573.154785 162.884781 571.764221
+182.979019 20 image20.jpg - 0 158.838806 5 703.325347 271.503915
+719.521545 289.575256 722.068542 255.098053 687.408386 253.744141
+684.810364 287.710022 20 image20.jpg - 0 148.891586 7 288.311732
+226.792524 301.743256 241.635849 303.183624 212.678894 274.592712
+211.631485 273.686432 240.672134 20 image20.jpg - 0 158.208237 8
+463.618071 227.802797 477.539612 243.163437 478.451691 214.351242
+450.169128 212.963608 448.530273 241.484848 20 image20.jpg - 0
+152.451630 10 93.906742 241.610524 110.209549 256.582367
+108.715866 225.858917 77.046715 226.126953 78.461563 258.038666 20
+image20.jpg - 1 122.124168 10 121.993658 237.849185 116.802597
+256.111328 127.002579 250.350983 127.312660 219.136948 116.768433
+224.807510 20 image20.jpg - 0 180.308456 14 356.368529 260.124533
+374.253052 276.713715 373.155365 242.630478 338.714691 243.749329
+339.002045 278.222656 20 image25.jpg 7 - - - - - - - - - - - - -
+25 image25.jpg - 0 159.849762 3 582.507313 172.942121 591.795227
+182.906143 591.923889 164.254883 573.199036 162.956253 571.731934
+182.882919 25 image25.jpg - 0 147.108521 5 703.373357 271.495786
+719.593933 289.606293 722.075439 255.179565 687.425171 253.689407
+684.764771 287.730438 25 image25.jpg - 0 140.312759 7 288.268145
+226.829514 301.681274 241.609970 303.048981 212.666824 274.490417
+211.647293 273.689331 240.798630 25 image25.jpg - 0 146.996597 8
+463.560976 227.951441 477.338593 243.141922 478.685333 214.351578
+450.017700 213.019333 448.623505 241.383255 25 image25.jpg - 0
+153.694931 10 93.782942 241.547014 110.238510 256.693695
+108.635750 225.810196 77.103790 226.194534 78.383408 257.863098 25
+image25.jpg - 1 113.686241 10 122.072088 238.076012 116.913773
+255.912231 127.017334 250.324402 127.539810 219.169937 116.757484
+224.912796 25 image25.jpg - 0 165.689682 14 356.385970 260.018932
+374.231659 276.600433 373.118774 242.689636 338.880737 243.753769
+338.837830 278.192627 25 image30.jpg 6 - - - - - - - - - - - - -
+30 image30.jpg - 0 155.947281 3 582.636028 173.051766 591.825500
+182.860748 592.247253 164.294495 573.197205 162.976624 571.755920
+182.965179 30 image30.jpg - 0 138.224838 5 703.368819 271.424655
+719.648376 289.561981 721.993958 255.153336 687.420532 253.656403
+684.844238 287.608124 30 image30.jpg - 0 133.446503 7 288.290607
+226.769328 301.734863 241.633545 303.016510 212.739883 274.621857
+211.656906 273.618622 240.747406 30 image30.jpg - 0 135.654953 8
+463.597073 227.824380 477.429749 243.000046 478.510620 214.266556
+450.144165 213.065353 448.515228 241.535202 30 image30.jpg - 0
+140.644104 10 93.730744 241.561373 110.169113 256.586182
+108.604462 225.684967 77.192940 226.445679 78.414024 257.910645 30
+image30.jpg - 0 161.092865 14 356.330265 260.039398 374.178680
+276.620728 373.045410 242.579193 338.886902 243.834366 338.890930
+278.256073 30 image35.jpg 6 - - - - - - - - - - - - - 35
+image35.jpg - 0 148.003799 3 582.602812 172.953155 591.831360
+182.879761 591.932190 164.355331 573.335510 162.984863 571.741272
+182.962997 35 image35.jpg - 0 128.799789 5 703.411014 271.430731
+719.605774 289.397095 721.909668 255.200394 687.414001 253.683746
+684.910339 287.662842 35 image35.jpg - 0 116.667206 7 288.362653
+226.640979 301.669708 241.467621 302.959503 212.737717 274.827393
+211.560074 273.481903 240.814651 35 image35.jpg - 0 125.475433 8
+463.518144 227.905292 477.252869 243.107758 478.615540 214.276764
+450.177765 213.139313 448.544403 241.422195 35 image35.jpg - 0
+127.881958 10 93.716440 241.548957 110.157845 256.553619
+108.684151 225.622009 77.216469 226.490845 78.305069 257.947998 35
+image35.jpg - 0 152.890747 14 356.334809 260.064420 374.221649
+276.635925 372.903595 242.615967 338.846680 243.862305 339.119873
+278.193329 35 image40.jpg 7 - - - - - - - - - - - - - 40
+image40.jpg - 0 127.371559 3 582.583398 173.123045 591.818726
+183.226852 592.238037 164.394623 573.372803 163.046295 571.925476
+182.758499 40 image40.jpg - 0 119.014404 5 703.381047 271.421501
+719.683289 289.451630 721.879761 255.190414 687.400208 253.746841
+684.933044 287.608093 40 image40.jpg - 0 107.545021 7 288.409140
+226.680896 301.746521 241.518707 303.076416 212.850510 274.796478
+211.536835 273.480530 240.757706 40 image40.jpg - 0 115.860542 8
+463.527455 227.804866 477.374695 243.120148 478.586609 214.259140
+450.197815 213.062057 448.446899 241.369843 40 image40.jpg - 0
+113.515663 10 93.702362 241.371369 110.230408 256.532410
+108.569290 225.665634 77.392113 226.410110 78.197205 257.751343 40
+image40.jpg - 1 88.120728 10 122.013354 237.775164 116.815285
+255.858810 126.994438 250.219040 127.297348 219.392593 116.872566
+224.932312 40 image40.jpg - 0 138.113480 14 356.254937 259.987364
+374.180267 276.610870 372.827515 242.589813 338.918884 243.910339
+338.979462 278.122803 40 #+end_example
 
-Again, I'm not going to tell you what the flags to "vnl-sort" do: they're normal
-"sort" flags that you either already know about, or can look up with "man sort"
+Again, I'm not going to tell you what the flags to "vnl-sort" do:
+they're normal "sort" flags that you either already know about, or
+can look up with "man sort"
 
-We now have a log that contains the input contrast values and the output
-performance numbers, so we can see how the contrast affects performance. Does it
-do anything to the detection counts?
+We now have a log that contains the input contrast values and the
+output performance numbers, so we can see how the contrast affects
+performance. Does it do anything to the detection counts?
 
 #+BEGIN_SRC shell :results output verbatim
-< joint2.vnl vnl-filter -p contrast,+Ndetections | \
-  feedgnuplot --vnl --autolegend --line --points --domain --xlabel contrast --ymin 0 --ymax 8
-#+END_SRC
+< joint2.vnl vnl-filter -p contrast,+Ndetections | \ feedgnuplot
+  --vnl --autolegend --line --points --domain --xlabel contrast
+  --ymin 0 --ymax 8 #+END_SRC
 
 #+RESULTS:
 
@@ -1415,20 +1709,21 @@ There're two new features in the above command:
 
   vnl-filter --has something -p something
 
-  And "--has something" will return ONLY rows that aren't "-" in the "something"
-  column. Remember that some of my rows have detection COUNTS in them, and some
-  have DETECTIONS. Here I pick one of those.
+  And "--has something" will return ONLY rows that aren't "-" in
+  the "something" column. Remember that some of my rows have
+  detection COUNTS in them, and some have DETECTIONS. Here I pick
+  one of those.
 
 - "feedgnuplot --vnl" parses the vnlog headers, and gets the dataset ID from
-  them. Thus --autolegend created the legend in the plot corresponding to the
-  column name.
+  them. Thus --autolegend created the legend in the plot
+  corresponding to the column name.
 
-What, specifically was the difference between a 6-detection case and a
-7-detection case? Let's look at detection IDs for these two cases
+What, specifically was the difference between a 6-detection case
+and a 7-detection case? Let's look at detection IDs for these two
+cases
 
 #+BEGIN_SRC shell :results output verbatim
-< joint.vnl vnl-filter 'contrast==-40' -p +id
-#+END_SRC
+< joint.vnl vnl-filter 'contrast==-40' -p +id #+END_SRC
 
 #+RESULTS:
 : # id
@@ -1440,8 +1735,7 @@ What, specifically was the difference between a 6-detection case and a
 : 14
 
 #+BEGIN_SRC shell :results output verbatim
-< joint.vnl vnl-filter 'contrast==10' -p +id
-#+END_SRC
+< joint.vnl vnl-filter 'contrast==10' -p +id #+END_SRC
 
 #+RESULTS:
 : # id
@@ -1453,76 +1747,78 @@ What, specifically was the difference between a 6-detection case and a
 : 10
 : 14
 
-I can eyeball this, and see that when in the case of contrast==10 we saw tag 10
-twice, but in the contrast==-40 case we only saw it once. If we had lots of
-data, I wouldn't be able to eyeball this, but a command can do the comparison
-for me:
+I can eyeball this, and see that when in the case of contrast==10
+we saw tag 10 twice, but in the contrast==-40 case we only saw it
+once. If we had lots of data, I wouldn't be able to eyeball this,
+but a command can do the comparison for me:
 
 #+BEGIN_SRC shell :results output verbatim
-comm -3 <(< joint.vnl vnl-filter 'contrast==-40' -p +id | vnl-sort -k id | vnl-uniq -c | sort) \
-        <(< joint.vnl vnl-filter 'contrast==10'  -p +id | vnl-sort -k id | vnl-uniq -c | sort)
-#+END_SRC
+comm -3 <(< joint.vnl vnl-filter 'contrast==-40' -p +id | vnl-sort
+        -k id | vnl-uniq -c | sort) \ <(< joint.vnl vnl-filter
+        'contrast==10' -p +id | vnl-sort -k id | vnl-uniq -c |
+        sort) #+END_SRC
 
 #+RESULTS:
 :       1 10
 : 	      2 10
 
-For each case I tallied the detection counts of each tag, and reported counts
-that don't match. The only such mismatches here are
+For each case I tallied the detection counts of each tag, and
+reported counts that don't match. The only such mismatches here
+are
 
 - 1 detection  of tag 10 in the first  data file (contrast==-40)
 - 2 detections of tag 10 in the second data file (contrast==10)
 
-Did the detector REALLY work even with the darkest, noisiest image? Let's look
-at it
+Did the detector REALLY work even with the darkest, noisiest
+image? Let's look at it
 
 #+BEGIN_SRC shell :results output verbatim
 c=-40; < joint.vnl vnl-filter -p xc,id,yc contrast==$c | \
-  feedgnuplot --autolegend --with 'points pt 7 ps 3' --domain --dataid --image image${c}.jpg --square
-#+END_SRC
+  feedgnuplot --autolegend --with 'points pt 7 ps 3' --domain
+  --dataid --image image${c}.jpg --square #+END_SRC
 
 #+RESULTS:
 
 Apparently it did.
 
-Note the "contrast==$c" in the "vnl-filter" invocation above. The "$c" is
-expanded by the shell, so vnl-filter sees "contrast==-40". This is a row-filter
-expression. Only rows for which that expression is true are returned (similar to
-tcpdump filters). I.e. I picked the darkest image.
+Note the "contrast==$c" in the "vnl-filter" invocation above. The
+"$c" is expanded by the shell, so vnl-filter sees "contrast==-40".
+This is a row-filter expression. Only rows for which that
+expression is true are returned (similar to tcpdump filters). I.e.
+I picked the darkest image.
 
-Let's look at the detection consistency. I plot ALL the detections on top of an
-arbitrary image.
-
-#+BEGIN_SRC shell :results none
-< joint.vnl vnl-filter -p +xc,contrast,yc | \
-  feedgnuplot --autolegend --with 'points pt 2 ps 3' --domain --dataid --image orig.jpg --square
-#+END_SRC
-
-Here I use contrast (not the tag id) as the dataid. Looks like the detections
-are fairly consistent. If we need help identifying specific detections, we can
-plot them with labels:
+Let's look at the detection consistency. I plot ALL the detections
+on top of an arbitrary image.
 
 #+BEGIN_SRC shell :results none
-< joint.vnl vnl-filter -p +xc,yc,contrast | \
-  feedgnuplot --autolegend --with labels --domain --tuplesizeall 3 --image orig.jpg --square
-#+END_SRC
+< joint.vnl vnl-filter -p +xc,contrast,yc | \ feedgnuplot
+  --autolegend --with 'points pt 2 ps 3' --domain --dataid --image
+  orig.jpg --square #+END_SRC
 
-Let's empirically quantify the spread. I pick an arbitrary tag, and plot a
-histogram of the detection centers, separately for x and y:
+Here I use contrast (not the tag id) as the dataid. Looks like the
+detections are fairly consistent. If we need help identifying
+specific detections, we can plot them with labels:
 
 #+BEGIN_SRC shell :results none
-< joint.vnl vnl-filter id==14 -p +xc,yc | \
-  feedgnuplot --autolegend --vnl --histo xc,yc --binwidth 0.1
-#+END_SRC
+< joint.vnl vnl-filter -p +xc,yc,contrast | \ feedgnuplot
+  --autolegend --with labels --domain --tuplesizeall 3 --image
+  orig.jpg --square #+END_SRC
 
-I can separate the axes, and make the histograms appear next to each other, but
-it's not worth the typing to do it. These histograms aren't very interesting
-since we don't have a lot of data. Let's get the basic statistics
+Let's empirically quantify the spread. I pick an arbitrary tag,
+and plot a histogram of the detection centers, separately for x
+and y:
+
+#+BEGIN_SRC shell :results none
+< joint.vnl vnl-filter id==14 -p +xc,yc | \ feedgnuplot
+  --autolegend --vnl --histo xc,yc --binwidth 0.1 #+END_SRC
+
+I can separate the axes, and make the histograms appear next to
+each other, but it's not worth the typing to do it. These
+histograms aren't very interesting since we don't have a lot of
+data. Let's get the basic statistics
 
 #+BEGIN_SRC shell :results output verbatim
-< joint.vnl vnl-filter id==14 -p +xc | \
-  ministat
-#+END_SRC
+< joint.vnl vnl-filter id==14 -p +xc | \ ministat #+END_SRC
 
 #+RESULTS:
 : x <stdin>
@@ -1536,9 +1832,7 @@ since we don't have a lot of data. Let's get the basic statistics
 : x  17       356.329     356.51215     356.44163     356.42659   0.054549882
 
 #+BEGIN_SRC shell :results output verbatim
-< joint.vnl vnl-filter id==14 -p +yc | \
-  ministat
-#+END_SRC
+< joint.vnl vnl-filter id==14 -p +yc | \ ministat #+END_SRC
 
 #+RESULTS:
 : x <stdin>
@@ -1550,24 +1844,24 @@ since we don't have a lot of data. Let's get the basic statistics
 :     N           Min           Max        Median           Avg        Stddev
 : x  17     260.02016     260.40136     260.17201     260.17772    0.11388838
 
-ministat is not a vnlog tool, but it works with generic data, which is what this
-is. The detections of tag 14 look fairly consistent.
+ministat is not a vnlog tool, but it works with generic data,
+which is what this is. The detections of tag 14 look fairly
+consistent.
 
 Let's look at the detection metrics over contrast.
 
 #+BEGIN_SRC shell :results none
-< joint2.vnl vnl-filter -p contrast,id,+margin | \
-  feedgnuplot --autolegend --domain --lines --points --dataid
-#+END_SRC
+< joint2.vnl vnl-filter -p contrast,id,+margin | \ feedgnuplot
+  --autolegend --domain --lines --points --dataid #+END_SRC
 
 Looks like the detector knows the results are less reliable as the
-contrast/noise gets crazy because the "margin" metric apparently likes the
-not-too-dark and not-too-bright images.
+contrast/noise gets crazy because the "margin" metric apparently
+likes the not-too-dark and not-too-bright images.
 
 ** vnl-filter details
 
-vnl-filter is not purely a wrapper, and has enough feature that need to be
-discussed
+vnl-filter is not purely a wrapper, and has enough feature that
+need to be discussed
 
 This tool
 
@@ -1576,8 +1870,8 @@ This tool
   default for performance)
 - execs that program
 
-So none of the actual work is done by vnl-filter. For debugging, we can ask for
-the generated program. For instance:
+So none of the actual work is done by vnl-filter. For debugging,
+we can ask for the generated program. For instance:
 
 #+BEGIN_SRC shell :results output verbatim
 < joint.vnl vnl-filter -p contrast,+margin 'xc > 5' --dumpexprs
@@ -1586,53 +1880,51 @@ the generated program. For instance:
 #+RESULTS:
 : /^#/ { print; next } 16 > NF { next } $4 == "-" { next }  !($6 > 5) { next } { __f0 = $16;  __f1 = $4; if(__f0  == "-" && __f1  == "-") { next }; print __f0,__f1} 
 
-If for whatever reason mawk isn't good-enough for us, we can use perl instead by
-passing --perl.
+If for whatever reason mawk isn't good-enough for us, we can use
+perl instead by passing --perl.
 
-We can also use vnl-filter as a thin frontend to awk, that allows column names:
+We can also use vnl-filter as a thin frontend to awk, that allows
+column names:
 
 #+BEGIN_SRC shell :results output verbatim
-< joint.vnl vnl-filter --eval 'xc > 5 {print contrast}' --dumpexprs
-#+END_SRC
+< joint.vnl vnl-filter --eval 'xc > 5 {print contrast}'
+--dumpexprs #+END_SRC
 
 #+RESULTS:
 : /^#/ { next } $6 > 5 {print $16} 
 
 It still makes sure comments (including the legend) are ignored.
 
-"vnl-filter -p" picks columns for output. This can be a comma-separated list, or
-multiple -p options can be given.
+"vnl-filter -p" picks columns for output. This can be a
+comma-separated list, or multiple -p options can be given.
 
-First vnl-filter tries to find columns that match the requested names exactly.
-If that finds nothing, it'll fall back to a regex. For instance, to pick all the
-x,y coords in the above examples you can do 'vnl-filter -p "^[xy]"'. This will
-pick ALL of
+First vnl-filter tries to find columns that match the requested
+names exactly. If that finds nothing, it'll fall back to a regex.
+For instance, to pick all the x,y coords in the above examples you
+can do 'vnl-filter -p "^[xy]"'. This will pick ALL of
 
   xc yc xlb ylb xrb yrb xrt yrt xlt ylt
 
-The tool is maximally permissive: if we actually had a column named "^[xy]",
-then the above command would pick THAT column instead. And if you had such a
-column, that's probably what you would have intended.
+The tool is maximally permissive: if we actually had a column
+named "^[xy]", then the above command would pick THAT column
+instead. And if you had such a column, that's probably what you
+would have intended.
 
-If we pick columns that start with '!', we're asking to EXCLUDE the matching
-columns. All the -p are processed in order, adding/removing columns as
-requested. If the first -p is an exclusion, we implicitly add ALL the columns
-first.
+If we pick columns that start with '!', we're asking to EXCLUDE
+the matching columns. All the -p are processed in order,
+adding/removing columns as requested. If the first -p is an
+exclusion, we implicitly add ALL the columns first.
 
-If we pick a column of the form 'a=xxx', then we get a column "a" in the output
-whose value is the awk (or perl) expression xxx. For instance I can say
-"vnl-filter -p a=(b+c+d)/e". The expression string is passed down to the core
-language verbatim, after replacing all the field names.
+If we pick a column of the form 'a=xxx', then we get a column "a"
+in the output whose value is the awk (or perl) expression xxx. For
+instance I can say "vnl-filter -p a=(b+c+d)/e". The expression
+string is passed down to the core language verbatim, after
+replacing all the field names.
 
-vnl-filter buffers the output by default. To enable streaming, pass
-"--unbuffered"
+vnl-filter buffers the output by default. To enable streaming,
+pass "--unbuffered"
 
 * init                                                             :noexport:
-Local Variables:
-eval: (progn
-          (setq org-confirm-babel-evaluate nil)
-          (org-babel-do-load-languages
-           'org-babel-load-languages
-            '((shell . t)))
-          (auto-fill-mode))
-End:
+Local Variables: eval: (progn (setq org-confirm-babel-evaluate
+nil) (org-babel-do-load-languages 'org-babel-load-languages
+'((shell . t))) (auto-fill-mode)) End:

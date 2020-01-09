@@ -55,31 +55,25 @@ seq 10
 
 Let's plot it!
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results none
 seq 100 | feedgnuplot
 #+END_SRC
-
-#+RESULTS:
 
 That's it. We didn't ask for anything specific, so we got a plot with default
 settings. Let's plot lines AND points.
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results none
 seq 100 | feedgnuplot --lines --points
 #+END_SRC
-
-#+RESULTS:
 
 Most of the interactions between feedgnuplot and gnuplot are passing strings
 verbatim to gnuplot, but VERY common stylings, such as --points and --lines have
 their own feedgnuplot options. If we want to change the point style or point
 size, we tell gnuplot about it:
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results none
 seq 100 | feedgnuplot --with 'linespoints pointsize 3 pointtype 7'
 #+END_SRC
-
-#+RESULTS:
 
 This MIGHT look cryptic, but this is the gnuplot syntax. If you know how to talk
 to gnuplot, there's nothing to learn. If you don't, then you get to learn two
@@ -88,7 +82,7 @@ tools for the price of one.
 Since feedgnuplot is a wrapper, we can ask it to just dump the gnuplot command
 it generates to the console, instead of to gnuplot:
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results output verbatim
 seq 100 | feedgnuplot --with 'linespoints pointsize 3 pointtype 7' --dump
 #+END_SRC
 
@@ -120,12 +114,10 @@ of realtime monitoring.
 
 Example plotting a made-up realtime sine wave:
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results none
 perl -E 'BEGIN { $|=1 } for $i (0..15) { say sin($i); sleep 1 }' | \
   feedgnuplot  --stream --with 'linespoints pointsize 3 pointtype 7' --exit
 #+END_SRC
-
-#+RESULTS:
 
 This is clearly made up, but let's now build something more concrete: let's
 investigate the temperature in my laptop. There're a number of thermal probes in
@@ -141,7 +133,7 @@ cat /proc/acpi/ibm/thermal
 Let me read off the temperatures every 1 second, strip "temperatures:", and
 send it to the plotter.
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results none
 while true; do < /proc/acpi/ibm/thermal awk '{$1=""; print}'; sleep 1; done |
   feedgnuplot --stream --with linespoints --exit
 #+END_SRC
@@ -149,7 +141,7 @@ while true; do < /proc/acpi/ibm/thermal awk '{$1=""; print}'; sleep 1; done |
 It looks like there're a number of sensors that aren't hooked-up, and always
 return -128. Let me ignore those, and let's also label the axes and datasets.
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results none
 while true; do < /proc/acpi/ibm/thermal awk '{print $2,$3,$4,$6,$8,$10,$11,$12}'; sleep 1; done |
   feedgnuplot --stream --with linespoints --autolegend \
               --xlabel 'Time (s)' \
@@ -170,7 +162,7 @@ these. Let's take it a step further: let's log temperatures for later
 processing. I log into a file; in a monitoring system this process would run in
 the background for a long time, gathering data
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results none
 while true; do < /proc/acpi/ibm/thermal awk '{print $2,$3,$4,$6,$8,$10,$11,$12}'; sleep 1; done > \
   /tmp/temperatures.log
 #+END_SRC
@@ -178,7 +170,7 @@ while true; do < /proc/acpi/ibm/thermal awk '{print $2,$3,$4,$6,$8,$10,$11,$12}'
 Whenever I like, I can then plot the data in this file, to look at ALL the past
 temperature history.
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results none
 < /tmp/temperatures.log \
     feedgnuplot --with linespoints --autolegend \
                 --xlabel 'Time (s)' \
@@ -186,11 +178,9 @@ temperature history.
                 --title  'Laptop temperatures vs. time'
 #+END_SRC
 
-#+RESULTS:
-
 Or, I can read the data off the end of this file to get realtime telemetry
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results none
 tail -f /tmp/temperatures.log | \
           feedgnuplot --with linespoints --autolegend \
                       --xlabel 'Time (s)' \
@@ -265,7 +255,7 @@ The IDs are used for 2 things:
 
 Example:
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results output verbatim
 seq 20 | awk '$1%2 { print $1*$1,"odd",$1 - 5} !($1%2){ print $1*$1,"even",$1}'
 #+END_SRC
 
@@ -293,7 +283,7 @@ seq 20 | awk '$1%2 { print $1*$1,"odd",$1 - 5} !($1%2){ print $1*$1,"even",$1}'
 400 even 20
 #+end_example
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results none
 seq 20 | awk '$1%2 { print $1*$1,"odd",$1 - 5} !($1%2){ print $1*$1,"even",$1}' | \
   feedgnuplot --domain --dataid                \
                --style odd  'with points pt 7' \
@@ -311,7 +301,7 @@ range points are used for various fancier gnuplot styles: errorbars, vectors,
 colors, symbol sizes, etc. The gnuplot docs describe the specific formats. For
 instance:
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results output verbatim
 gnuplot -e 'help yerrorbars'
 #+END_SRC
 
@@ -340,7 +330,7 @@ specific style: feedgnuplot doesn't know anything about styles, and just passes
 on the data to gnuplot. Example: let's add colors and point sizes to the
 previous plot:
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results output verbatim
 seq 20 | awk '$1%2 { print $1*$1,"odd",$1 - 5,$1,$1} !($1%2){ print $1*$1,"even",$1,$1}'
 #+END_SRC
 
@@ -368,7 +358,7 @@ seq 20 | awk '$1%2 { print $1*$1,"odd",$1 - 5,$1,$1} !($1%2){ print $1*$1,"even"
 400 even 20 20
 #+end_example
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results none
 seq 20 | awk '$1%2 { print $1*$1,"odd",$1 - 5,$1,$1} !($1%2){ print $1*$1,"even",$1,$1}' | \
   feedgnuplot --domain --dataid                                    \
                --style odd  'with points pt 7 palette ps variable' \
@@ -390,7 +380,7 @@ We can also plot in 3d. This works like one would expect:
 
 Example:
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results output verbatim
 seq 200 | perl -nE 'chomp; $c=cos($_/10); $s=sin($_/10);            \
                     say "$c $s $_ $_ " . ($_+30) . " " . (200-$_);'
 #+END_SRC
@@ -600,7 +590,7 @@ seq 200 | perl -nE 'chomp; $c=cos($_/10); $s=sin($_/10);            \
 #+end_example
 
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results none
 seq 200 | perl -nE 'chomp; $c=cos($_/10); $s=sin($_/10);              \
                     say "$c $s $_ $_ " . ($_+30) . " " . (200-$_);' | \
    feedgnuplot --3d                                                   \
@@ -612,7 +602,7 @@ seq 200 | perl -nE 'chomp; $c=cos($_/10); $s=sin($_/10);              \
 I also provide direct histogram support. For instance, let's look at the
 distribution of file sizes in /tmp.
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results none
 ls -l /tmp | awk '$1 != "total" {print $5/1000000}' | \
   feedgnuplot --histogram 0 --binwidth 1
 #+END_SRC
@@ -626,7 +616,7 @@ I can plot on top of an image with --image (very useful for computer vision).
 
 I can also make hardcopies. Let's save our beautiful histogram to a file
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results output verbatim
 ls -l /tmp | awk '$1 != "total" {print $5/1000000}' | \
   feedgnuplot --histogram 0 --binwidth 1 --hardcopy /tmp/filesizes.pdf
 #+END_SRC
@@ -639,7 +629,7 @@ ls -l /tmp | awk '$1 != "total" {print $5/1000000}' | \
 Finally, since this is firmly rooted in the world of UNIXy shells, I can make
 self-plotting data files. For instance:
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results output verbatim
 cat selfplotting.dat
 #+END_SRC
 
@@ -669,7 +659,7 @@ cat selfplotting.dat
 10 100
 #+end_example
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results none
 ./selfplotting.dat
 #+END_SRC
 
@@ -741,7 +731,7 @@ Let's do some case studies to highlight some useful workflows
 Let's revisit our temperature logging, but let's add a header identifying the
 fields
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results none
 (echo '# temp0 temp1 temp2 temp3 temp4 temp5 temp6 temp7';
   while true; do < /proc/acpi/ibm/thermal awk '{print $2,$3,$4,$6,$8,$10,$11,$12}'; sleep 1; done) > \
   /tmp/temperatures.vnl
@@ -851,7 +841,7 @@ each stage in the pipeline with the same tools.
 Let's look at the data. There's a lot of stuff. Let's align the columns so
 that we (high-maintenance humans) can more clearly see what's what.
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results output verbatim
 < orig.vnl vnl-align
 #+END_SRC
 
@@ -882,7 +872,7 @@ First, we filter the log to keep only the data we want. Columns xc and yc are
 the pixel coordinates of the centers of detected tags, and id indicates which
 tag we're seeing.
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results output verbatim
 < orig.vnl vnl-filter -p xc,id,yc
 #+END_SRC
 
@@ -904,7 +894,7 @@ chain these tools
 
 And with the filtered data, we can plot it overlaid on top of our image
 
-#+BEGIN_SRC shell :results none
+#+BEGIN_SRC shell :results output verbatim
 < orig.vnl vnl-filter -p xc,id,yc | \
   feedgnuplot --autolegend --image orig.jpg --square --domain --dataid --with 'points pt 7 ps 2'
 #+END_SRC
@@ -932,7 +922,7 @@ This creates a different image with the contrast level in the filename, and I
 pull that out into a separate vnlog. If we had REAL images, I'd get this from
 the image intensities. I write these into "contrast.vnl":
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results output verbatim
 (echo '# path contrast'; for fil (image*.jpg) { echo -n "$fil "; echo $fil | sed 's/image//; s/.jpg//' }) | tee contrast.vnl
 #+END_SRC
 
@@ -1102,7 +1092,7 @@ image5.jpg - 0 168.502563 14 356.548485 260.258082 374.107086 276.708954 373.353
 Cool! I now have two logs, one containing apriltag detections, and another the
 contrast info. Let's join them:
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results output verbatim
 vnl-join -j path images.vnl contrast.vnl | tee joint.vnl
 #+END_SRC
 
@@ -1259,7 +1249,7 @@ what you would do with the core tool, but give it column names"
 
 Since we can, let's sort the above numerically by contrast, and let's align the columns
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results output verbatim
 < joint.vnl vnl-sort -s -k contrast -n | vnl-align | tee joint2.vnl
 #+END_SRC
 
@@ -1405,7 +1395,7 @@ We now have a log that contains the input contrast values and the output
 performance numbers, so we can see how the contrast affects performance. Does it
 do anything to the detection counts?
 
-#+BEGIN_SRC shell :results none
+#+BEGIN_SRC shell :results output verbatim
 < joint2.vnl vnl-filter -p contrast,+Ndetections | \
   feedgnuplot --vnl --autolegend --line --points --domain --xlabel contrast
 #+END_SRC
@@ -1433,7 +1423,7 @@ There're two new features in the above command:
 Did the detector REALLY work even with the darkest, noisiest image? Let's look
 at that
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results output verbatim
 c=-40; < joint2.vnl vnl-filter -p xc,id,yc contrast==$c | \
   feedgnuplot --autolegend --with 'points pt 7 ps 3' --domain --dataid --image image${c}.jpg --square
 #+END_SRC
@@ -1502,7 +1492,7 @@ passing --perl.
 
 We can also use vnl-filter as a thin frontend to awk, that allows column names:
 
-#+BEGIN_SRC shell :results output none
+#+BEGIN_SRC shell :results output verbatim
 < joint2.vnl vnl-filter --eval 'xc > 5 {print contrast}' --dumpexprs
 #+END_SRC
 

@@ -19,6 +19,16 @@ make very powerful one-liners possible. These are very useful for the initial
 exploration of data. For complex tasks, more powerful toolkits (numpy, matlab,
 excel, etc) are a better choice, but you can go a LONG way with just the shell.
 
+Why do any of this in the shell? Because we already live in the shell, so we can
+combine this with other tools to get a LOT of leverage out of it. Examples:
+
+- remote web-server monitoring by visualizing (in real time) web server logs
+  over ssh
+- 802.11 network quality logging
+- data throughput monitoring
+
+You wouldn't even attempt any of these with Matlab or Excel.
+
 These tools are not the PERFECT choice for any one task, but are a GOOD choice
 for a wide range of tasks. They are great for prototyping and initial data
 exploration, since you can quickly get something running.
@@ -162,16 +172,6 @@ tail -f /tmp/temperatures.log | \
 #+END_SRC
 
 We get BOTH: logging AND realtime visualization.
-
-Why do any of this in the shell? Because we already live in the shell, so we can
-combine this with other tools to get a LOT of leverage out of it. Examples:
-
-- remote web-server monitoring by visualizing (in real time) web server logs
-  over ssh
-- 802.11 network quality logging
-- data throughput monitoring
-
-You wouldn't even attempt any of these with Matlab or Excel.
 
 feedgnuplot can do much much more than what I showed here. Colors! 3D plots!
 Images! Histograms! Contours! Hardcopies! Self-plotting data!
@@ -755,6 +755,9 @@ plot-temperatures-from-file command still works with no changes:
 
 But we can do more things. I can tell feedgnuplot that this is a vnlog (with
 --vnl), and it's then able to label the fields
+
+Note: I didn't have to manually tell feedgnuplot the name of each column: it
+figured those out from the log file
 
 #+BEGIN_SRC shell :results none
 < /tmp/temperatures.vnl \

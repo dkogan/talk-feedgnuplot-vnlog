@@ -118,7 +118,7 @@ Example plotting a made-up realtime sine wave:
 
 #+BEGIN_SRC shell :results none
 perl -E 'BEGIN { $|=1 } for $i (0..15) { say sin($i); sleep 1 }' | \
-  feedgnuplot  --stream --with 'linespoints pointsize 3 pointtype 7' --exit
+  feedgnuplot --stream --with 'linespoints pointsize 3 pointtype 7' --exit
 #+END_SRC
 
 This is clearly made up, but let's now build something more concrete: let's
@@ -1465,7 +1465,7 @@ What, specifically was the difference between a 6-detection case and a
 : 14
 
 #+BEGIN_SRC shell :results output verbatim
-< joint.vnl vnl-filter 'contrast==0' -p +id
+< joint.vnl vnl-filter 'contrast==10' -p +id
 #+END_SRC
 
 #+RESULTS:
@@ -1478,14 +1478,14 @@ What, specifically was the difference between a 6-detection case and a
 : 10
 : 14
 
-I can eyeball this, and see that when in the case of contrast==0 we saw tag 10
+I can eyeball this, and see that when in the case of contrast==10 we saw tag 10
 twice, but in the contrast==-40 case we only saw it once. If we had lots of
 data, I wouldn't be able to eyeball this, but a command can do the comparison
 for me:
 
 #+BEGIN_SRC shell :results output verbatim
 comm -3 <(< joint.vnl vnl-filter 'contrast==-40' -p +id | vnl-sort -k id | vnl-uniq -c | sort) \
-        <(< joint.vnl vnl-filter 'contrast==0'   -p +id | vnl-sort -k id | vnl-uniq -c | sort)
+        <(< joint.vnl vnl-filter 'contrast==10'  -p +id | vnl-sort -k id | vnl-uniq -c | sort)
 #+END_SRC
 
 #+RESULTS:
@@ -1496,7 +1496,7 @@ For each case I tallied the detection counts of each tag, and reported counts
 that don't match. The only such mismatches here are
 
 - 1 detection  of tag 10 in the first  data file (contrast==-40)
-- 2 detection2 of tag 10 in the second data file (contrast==0)
+- 2 detections of tag 10 in the second data file (contrast==10)
 
 Did the detector REALLY work even with the darkest, noisiest image? Let's look
 at it

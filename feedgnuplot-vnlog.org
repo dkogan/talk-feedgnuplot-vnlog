@@ -30,7 +30,9 @@ feedgnuplot has much more clear applicability, so I'll talk about it first.
 
 * feedgnuplot
 
-We visualize standard input!
+This is a frontend to the gnuplot plotting tool. It doesn't actually plot
+anything: it generates commands for gnuplot, and IT makes the plots. We
+visualize standard input!
 
 ** Basic usage
 Let's go over the basics, and get something running.
@@ -81,49 +83,16 @@ This MIGHT look cryptic, but it is the gnuplot syntax. If you know how to talk
 to gnuplot, there's nothing to learn. If you don't, then you get to learn two
 tools for the price of one.
 
-Since feedgnuplot is a wrapper, we can ask it to just dump the gnuplot command
-it generates to the console, instead of to gnuplot:
+Furthermore, my tool does not even know what this string means, it just passes
+it down to gnuplot verbatim. So everything the underlying tool supports is
+available here.
 
-#+BEGIN_SRC shell :results output verbatim
-seq 10 | feedgnuplot --with 'linespoints pointsize 3 pointtype 7' --dump
-#+END_SRC
-
-#+RESULTS:
-#+begin_example
-set grid
-set boxwidth 1
-histbin(x) = 1 * floor(0.5 + x/1)
-plot '-'   notitle with linespoints pointsize 3 pointtype 7 
-1 1
-2 2
-3 3
-4 4
-5 5
-6 6
-7 7
-8 8
-9 9
-10 10
-e
-#+end_example
-
-This is very useful for debugging fancier plots.
-
-Let's make things more interesting. So far, we fed data into the tool, and when
-all the data has been read in, we made a plot. Instead, we can make a plot of
-the data AS IT COMES IN by passing --stream. This is REALLY useful for all types
-of realtime monitoring.
-
-Example plotting a made-up realtime sine wave:
-
-#+BEGIN_SRC shell :results none
-perl -E 'BEGIN { $|=1 } for $i (0..15) { say sin($i); sleep 1 }' | \
-  feedgnuplot --stream --with 'linespoints pointsize 3 pointtype 7' --exit
-#+END_SRC
-
-This is clearly made up, but let's now build something more concrete: let's
-investigate the temperature in my laptop. There're a number of thermal probes in
-this machine:
+And since I'm reading a pipe, all the other normal pipe things are available. So
+far, we fed data into the tool, and when all the data has been read in, we made
+a plot. Instead, we can make a plot of the data AS IT COMES IN by passing
+--stream. This is REALLY useful for all types of realtime monitoring, so let's
+do some of that: let's investigate the temperature in my laptop. There're a
+number of thermal probes in this machine:
 
 #+BEGIN_SRC shell :results output verbatim
 cat /proc/acpi/ibm/thermal
@@ -192,9 +161,10 @@ tail -f /tmp/temperatures.log | \
                       --stream --xlen 10 --exit
 #+END_SRC
 
-This is already pretty useful, and we built it with no effort at all. And since
-this all normal shell stuff, we can combine this sort of thing with other tools
-to get potentially a LOT of leverage of this. Examples:
+We get BOTH: logging AND realtime visualization.
+
+Why do any of this in the shell? Because we already live in the shell, so we can
+combine this with other tools to get a LOT of leverage out of it. Examples:
 
 - remote web-server monitoring by visualizing (in real time) web server logs
   over ssh
@@ -202,6 +172,9 @@ to get potentially a LOT of leverage of this. Examples:
 - data throughput monitoring
 
 You wouldn't even attempt any of these with Matlab or Excel.
+
+feedgnuplot can do much much more than what I showed here. Colors! 3D plots!
+Images! Histograms! Contours! Hardcopies! Self-plotting data!
 
 ** Shortcomings when logging
 
@@ -236,8 +209,6 @@ After you live this way for a while, you get some clarity about what the issues
 are, and how to fix them.
 
 This is a good segue to talk about vnlog.
-
-
 
 ** Fancier usage
 *** Data formats
@@ -741,7 +712,8 @@ nicer, but again, none of these tools or libraries are strictly necessary.
 Philosophy:
 
 - as before, minimal new knowledge is created. I don't actually do any work.
-  Everything is a wrapper for something else, that we're already familiar with
+  Everything is a wrapper for something else, that we're already familiar with.
+  A friendly learning curve results
 
 - In a data processing pipeline, as much as possible, each step should use this
   format for both input and output. This produces a uniformity that's really

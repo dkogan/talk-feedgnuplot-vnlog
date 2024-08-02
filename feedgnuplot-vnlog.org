@@ -1628,11 +1628,136 @@ vnl-filter buffers the output by default. To enable streaming, pass
 "--unbuffered"
 
 * init                                                             :noexport:
+Below is code to set M-f1, M-f2, ... M-f12, M-S-f1, M-S-f2, ... to autoinsert
+snippets for a super-abbreviated version of this talk
+
 Local Variables:
 eval: (progn
           (setq org-confirm-babel-evaluate nil)
           (org-babel-do-load-languages
            'org-babel-load-languages
             '((shell . t)))
-          (auto-fill-mode))
+          (auto-fill-mode)
+
+
+      (setq snippets
+        [
+         "seq 5"
+
+         "seq 5 | feedgnuplot"
+
+         "seq 5 | feedgnuplot --lines --points"
+
+         "seq 5 | feedgnuplot --with 'linespoints pt 7 ps 2' --unset grid"
+
+         "cat /proc/acpi/ibm/thermal"
+
+         "
+i=0
+while (true) { cat /proc/acpi/ibm/thermal \\
+                 | awk '{print $2}' \\
+                 | read t;
+               echo \"$i $t\";
+               i=$((i+1))
+               sleep 1
+             } \\
+| tee /tmp/log \\
+| feedgnuplot --stream --with linespoints \\
+    --domain            \\
+    --xlabel 'Time (s)' \\
+    --ylabel 'Temperature (degrees C)' \\
+    --title  'Laptop temperatures vs. time' \\
+    --exit"
+
+         "< /tmp/log \\
+| feedgnuplot --with linespoints \\
+    --domain            \\
+    --xlabel 'Time (s)' \\
+    --ylabel 'Temperature (degrees C)' \\
+    --title  'Laptop temperatures vs. time'"
+
+         "(echo '# time tempC'; cat /tmp/log) | head"
+
+         "(echo '# time tempC'; cat /tmp/log) \\
+| feedgnuplot --with linespoints \\
+    --domain            \\
+    --vnl               \\
+    --autolegend        \\
+    --xlabel 'Time (s)' \\
+    --ylabel 'Temperature (degrees C)' \\
+    --title  'Laptop temperatures vs. time'"
+
+         "(echo '# time tempC'; cat /tmp/log) \\
+| head                                        \\
+| vnl-align"
+
+         "(echo '# time tempC'; cat /tmp/log) \\
+| vnl-filter 'time < 10'"
+
+         "(echo '# time tempC'; cat /tmp/log) \\
+| head                                        \\
+| vnl-filter -p temp"
+
+         "(echo '# time tempC'; cat /tmp/log) \\
+| head                                        \\
+| vnl-filter -p tempF='32+tempC*9./5.'"
+
+         "(echo '# time tempC'; cat /tmp/log) \\
+| vnl-filter --eval '{ if(tempC_max<tempC) { \\
+                         tempC_max=tempC } } \\
+                     END {print tempC_max}'"
+
+         "(echo '# time tempC'; cat /tmp/log) \\
+| vnl-sort -grk tempC \\
+| head -n2            \\
+| vnl-filter -p tempC"
+
+"(echo '# time tempC'; cat /tmp/log) \\
+| datamash -CW max 2"
+
+"(echo '# time tempC'; cat /tmp/log) \\
+| vnl-filter -p tempC                \\
+| ministat"
+         ])
+
+      (defun -last-in-sequence (s)
+        (let* ((N (length s)))
+          (elt s (1- N))))
+      (defun -insert-talk-snippet ()
+          "Find an integer in the last keybind, and insert the i-th snippet
+           element; if a S appears in the binding, add 12"
+          (interactive)
+          (let* ((k (symbol-name (-last-in-sequence (recent-keys nil)))))
+            (string-match "[0-9]+" k)
+            (let* ((i (string-to-number (match-string 0 k)))
+                   (Sextra (if (string-match "S" k) 12 0)))
+              (insert (elt snippets (1- (+ i Sextra)))))
+            (setq frame-title-format (format "last key: %s" k))))
+
+      (global-set-key (kbd "M-<f1>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-<f2>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-<f3>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-<f4>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-<f5>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-<f6>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-<f7>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-<f8>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-<f9>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-<f10>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-<f11>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-<f12>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-S-<f1>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-S-<f2>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-S-<f3>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-S-<f4>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-S-<f5>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-S-<f6>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-S-<f7>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-S-<f8>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-S-<f9>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-S-<f10>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-S-<f11>") '-insert-talk-snippet)
+      (global-set-key (kbd "M-S-<f12>") '-insert-talk-snippet)
+
+)
 End:
